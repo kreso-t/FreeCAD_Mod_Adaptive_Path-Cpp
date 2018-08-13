@@ -31,11 +31,15 @@ PYBIND11_MODULE(PathAdaptiveCore, m) {
 		Adaptive2d.def(py::init<>());
 		Adaptive2d.def("Execute",&Adaptive2d::Execute);
 		Adaptive2d.def("SetProgressCallbackFn", &Adaptive2d::SetProgressCallbackFn);
+
 	 	Adaptive2d.def_readwrite("toolDiameter", &Adaptive2d::toolDiameter);
 		Adaptive2d.def_readwrite("helixRampDiameter", &Adaptive2d::helixRampDiameter);
 		Adaptive2d.def_readwrite("polyTreeNestingLimit", &Adaptive2d::polyTreeNestingLimit);
 		Adaptive2d.def_readwrite("tolerance", &Adaptive2d::tolerance);
-
+		// debugging
+		Adaptive2d.def_readwrite("DrawCircleFn", &Adaptive2d::DrawCircleFn);
+		Adaptive2d.def_readwrite("ClearScreenFn", &Adaptive2d::ClearScreenFn);
+		Adaptive2d.def_readwrite("DrawPathFn", &Adaptive2d::DrawPathFn);
 
 
 

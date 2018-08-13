@@ -78,6 +78,10 @@ namespace AdaptivePath {
 			void SetProgressCallbackFn(std::function<bool(ProgressInfo &)> &fn) {
 				progressCallbackFn=fn;
 			}
+			/*for debugging*/
+			std::function<void(double cx,double cy, double radius, int color)> DrawCircleFn;
+			std::function<void(const DPath &, int color)> DrawPathFn;
+			std::function<void()> ClearScreenFn;
 
 		private:
 			std::function<bool(ProgressInfo &)> progressCallbackFn;
@@ -100,9 +104,28 @@ namespace AdaptivePath {
 			void ProcessPolyNode(const Paths & boundPaths, const Paths & toolBoundPaths );
 			bool FindEntryPoint(const Paths & toolBoundPaths, IntPoint &entryPoint /*output*/);
 			double CalcCutArea(Clipper & clip,const IntPoint &toolPos, const IntPoint &newToolPos, const Paths &cleared_paths);
+
+			//debugging
+			void DrawCircle(const IntPoint &  cp, double radiusScaled, int color ) {
+				DrawCircleFn(1.0*cp.X/ scaleFactor, 1.0 *cp.Y/scaleFactor, radiusScaled/scaleFactor,color);
+			}
+			void DrawPath(const Path & path, int color ) {
+				DPath dpath;
+				if(path.size()==0) return;
+				for(const IntPoint &pt : path) {
+					std::pair<double,double> dpt = std::pair<double,double>((double)pt.X/scaleFactor, (double)pt.Y/scaleFactor);
+					dpath.push_back(dpt);
+				}
+				DrawPathFn(dpath,color);
+			}
+
+			void DrawPaths(const Paths & paths, int color ) {
+				for(const Path &p : paths) DrawPath(p,color);
+			}
+
 		private: // constants
 			//const double RESOLUTION_FACTOR = 8.0;
-			const double RESOLUTION_FACTOR = 8.0;
+			const double RESOLUTION_FACTOR = 10.0;
 			const int MAX_ITERATIONS = 8;
 			const double AREA_ERROR_FACTOR = 40; /* how precise to match the cut area to optimal */
 			const long PASSES_LIMIT = 1000; // used for debugging purposes

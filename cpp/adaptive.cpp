@@ -110,6 +110,54 @@ namespace AdaptivePath {
 		return minDistSq;
 	}
 
+	bool Circle2CircleIntersect(const IntPoint & c1, const IntPoint &c2, double radius, pair<DoublePoint,DoublePoint> & intersections ) {
+		double DX = double(c2.X - c1.X);
+		double DY = double(c2.Y - c1.Y);
+		double d = sqrt(DX*DX+DY*DY);
+		if(d<NTOL) return false; // same center
+		if(d>=radius) return false; // do not intersect, or intersect in one point (this case not relevant here)
+		double a_2 = sqrt(4*radius*radius-d*d)/2.0;
+		intersections.first = DoublePoint(0.5*(c1.X+c2.X)-DY*a_2/d, 0.5*(c1.Y+c2.Y)+DX*a_2/d);
+		intersections.second = DoublePoint(0.5*(c1.X+c2.X)+DY*a_2/d, 0.5*(c1.Y+c2.Y)-DX*a_2/d);
+		return true;
+	}
+
+	inline double PointSideOfLine(const IntPoint& p1, const IntPoint& p2,const IntPoint& pt) {
+		return (pt.X - p1.X)*(p2.Y-p1.Y) - (pt.Y - p2.Y)*(p2.X-p1.X);
+	}
+
+	inline double Angle3Points(const DoublePoint & p1,const DoublePoint& p2, const DoublePoint& p3) {
+		  double t1= atan2(p1.Y-p2.Y,p1.X-p2.X);
+    	  double t2=atan2(p3.Y-p2.Y,p3.X-p2.X);
+    	  return fabs( t2 - t1 );
+	}
+
+	bool Line2CircleIntersect(const IntPoint &c, double radius,const IntPoint &p1, const IntPoint &p2, vector<DoublePoint> & result, bool clamp=true)
+	{
+		//to do: box  check for performance
+		 double dx=double(p2.X-p1.X);
+    	 double dy=double(p2.Y-p1.Y);
+    	 double lcx = double(p1.X - c.X);
+    	 double lcy = double(p1.Y - c.Y);
+    	 double a=dx*dx+dy*dy;
+    	 double b=2*dx*lcx+2*dy*lcy;
+    	 double C=lcx*lcx+lcy*lcy-radius*radius;
+    	 double sq = b*b-4*a*C;
+    	 if (sq<0) return false; // no solution
+    	 sq=sqrt(sq);
+    	 double t1=(-b-sq)/(2*a);
+    	 double t2=(-b+sq)/(2*a);
+		 result.clear();
+    	if(clamp) {
+        	if (t1>=0 && t1<=1) result.push_back(DoublePoint(p1.X + t1*dx, p1.Y + t1*dy));
+        	if (t2>=0 && t2<=1) result.push_back(DoublePoint(p1.X + t2*dx, p1.Y + t2*dy));
+		} else {
+			result.push_back(DoublePoint(p1.X + t2*dx, p1.Y + t2*dy));
+			result.push_back(DoublePoint(p1.X + t2*dx, p1.Y + t2*dy));
+		}
+		return result.size()>0;
+	}
+
 	IntPoint Compute2DPolygonCentroid(const Path &vertices)
 	{
 	    IntPoint centroid(0,0);
@@ -151,6 +199,35 @@ namespace AdaptivePath {
 		return true;
 	}
 
+	/* finds one intersection of line segment with line segment */
+	bool IntersectionPoint(const IntPoint & s1p1,
+						const IntPoint & s1p2,
+						const IntPoint & s2p1,
+						const IntPoint & s2p2,
+						IntPoint & intersection) {
+		// todo: bounds check for perfomance
+		double S1DX = double(s1p2.X - s1p1.X);
+		double S1DY = double(s1p2.Y - s1p1.Y);
+		double S2DX = double(s2p2.X - s2p1.X);
+		double S2DY = double(s2p2.Y - s2p1.Y);
+		double d=S1DY*S2DX - S2DY*S1DX;
+		if(fabs(d)<NTOL) return false; // lines are parallel
+
+		double LPDX = double(s1p1.X - s2p1.X);
+		double LPDY = double(s1p1.Y - s2p1.Y);
+		double p1d = S2DY*LPDX - S2DX*LPDY;
+		double p2d = S1DY*LPDX - S1DX*LPDY;
+		if((d<0) && (
+			p1d<d || p1d>0 || p2d<d || p2d>0
+		)) return false ; // intersection not within segment1
+		if((d>0) && (
+			p1d<0 || p1d>d || p2d<0 || p2d>d
+		)) return true; // intersection not within segment2
+		double t=p1d/d;
+		intersection=IntPoint(s1p1.X + S1DX*t, s1p1.Y + S1DY*t);
+		return true;
+	}
+
 	/* finds one intersection of line segment with paths */
 	bool IntersectionPoint(const Paths & paths,const IntPoint & p1, const IntPoint & p2, IntPoint & intersection) {
 		for(size_t i=0; i< paths.size(); i++) {
@@ -158,7 +235,7 @@ namespace AdaptivePath {
 			size_t size=path->size();
 			if(size<2) continue;
 			for(size_t j=0;j<size;j++) {
-				// todo: bound box check for perfomance
+				// todo: box check for perfomance
 				const IntPoint * pp1 = &path->at(j>0?j-1:size-1);
 				const IntPoint * pp2 = &path->at(j);
 				double LDY = double(p2.Y - p1.Y);
@@ -443,16 +520,16 @@ namespace AdaptivePath {
 		progressCallbackFn = [](ProgressInfo &a ) { return false; };
 	}
 
-	double Adaptive2d::CalcCutArea(Clipper & clip,const IntPoint &toolPos, const IntPoint &newToolPos, const Paths &cleared_paths) {
-
-		double dist = DistanceSqrd(toolPos,newToolPos);
+	double Adaptive2d::CalcCutArea(Clipper & clip,const IntPoint &c1, const IntPoint &c2, const Paths &cleared_paths) {
+		/// old alg
+		double dist = DistanceSqrd(c1,c2);
 		if(dist<NTOL) return 0;
 		Perf_CalcCutArea.Start();
 		// 1. find differene beween old and new tool shape
 		Path oldTool;
 		Path newTool;
-		TranslatePath(toolGeometry,oldTool,toolPos);
-		TranslatePath(toolGeometry,newTool,newToolPos);
+		TranslatePath(toolGeometry,oldTool,c1);
+		TranslatePath(toolGeometry,newTool,c2);
 		clip.Clear();
 		clip.AddPath(newTool, PolyType::ptSubject, true);
 		clip.AddPath(oldTool, PolyType::ptClip, true);
@@ -472,7 +549,21 @@ namespace AdaptivePath {
 			areaSum += fabs(Area(path));
 		}
 		Perf_CalcCutArea.Stop();
-		return areaSum;
+
+
+
+
+		/// new alg
+
+		double rsqrd_2=toolRadiusScaled*toolRadiusScaled/2.0;
+    	double area =0;		
+		ClearScreenFn();
+		DrawPaths(cleared_paths,1);
+
+
+		cout<< "PolyArea:" << areaSum << " new area:" << area << endl;
+		return area;
+
 	}
 
 	/****************************************
@@ -745,7 +836,7 @@ namespace AdaptivePath {
 				// bound cleared area to region around the tool - to simplify the computation of cut area
 
 				// Perf_BoundingCleared.Start();
-				// TranslatePath(boundBoxGeometry, boundBox /*output*/, toolPos);
+				// TranslatePath(boundBoxGeometry, boundBox /*output*/, toolPos); pygame.draw.circle(screen, (0,0,0),transCoord(c1) , 5, 1)
 				// clip.Clear();
 				// clip.AddPath(boundBox,PolyType::ptSubject, true);
 				// clip.AddPaths(cleared,PolyType::ptClip, true);
@@ -774,6 +865,7 @@ namespace AdaptivePath {
 					newToolPos = IntPoint(toolPos.X + newToolDir.X * stepScaled, toolPos.Y + newToolDir.Y * stepScaled);
 
 					area = CalcCutArea(clip, toolPos,newToolPos, cleared);
+					cout << "area: " << area << endl;
 					areaPD = area/double(stepScaled); // area per distance travelled
 					interp.addPoint(areaPD,angle);
 
