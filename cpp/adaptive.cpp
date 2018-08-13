@@ -556,13 +556,13 @@ namespace AdaptivePath {
 		/// new alg
 
 		double rsqrd_2=toolRadiusScaled*toolRadiusScaled/2.0;
-    	double area =0;		
+    	double area =0;
 		ClearScreenFn();
 		DrawPaths(cleared_paths,1);
 
 
 		cout<< "PolyArea:" << areaSum << " new area:" << area << endl;
-		return area;
+		return areaSum;
 
 	}
 
