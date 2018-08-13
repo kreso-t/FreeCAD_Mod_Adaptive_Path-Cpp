@@ -415,8 +415,9 @@ namespace AdaptivePath {
 				calculateCurrentPathLength();
 				passes=0;
 		}
-		bool nextEngagePoint(const Paths & cleared, double step, double minCutArea, double maxCutArea) {			
+		bool nextEngagePoint(Adaptive2d*parent,  const Paths & cleared, double step, double minCutArea, double maxCutArea) {
 			Perf_NextEngagePoint.Start();
+			IntPoint initialPoint = getCurrentPoint();
 			for(;;) {
 				if(!moveForward(step))	 {
 					if(!nextPath()) {
@@ -428,17 +429,18 @@ namespace AdaptivePath {
 					}
 				}
 				IntPoint cpt = getCurrentPoint();
-				Path toolPoly;
-				TranslatePath(*toolGeometry,toolPoly,cpt);
-				clip.Clear();
-				clip.AddPath(toolPoly,PolyType::ptSubject,true);
-				clip.AddPaths(cleared,PolyType::ptClip, true);
-				Paths cutting;
-				clip.Execute(ClipType::ctDifference,cutting);
-				double area=0;
-				for(Path &path : cutting) {
-					area += fabs(Area(path));
-				}
+				double area=parent->CalcCutArea(clip,initialPoint,cpt,cleared);
+				// Path toolPoly;
+				// TranslatePath(*toolGeometry,toolPoly,cpt);
+				// clip.Clear();
+				// clip.AddPath(toolPoly,PolyType::ptSubject,true);
+				// clip.AddPaths(cleared,PolyType::ptClip, true);
+				// Paths cutting;
+				// clip.Execute(ClipType::ctDifference,cutting);
+				// double area=0;
+				// for(Path &path : cutting) {
+				// 	area += fabs(Area(path));
+				// }
 				if(area>minCutArea && area<maxCutArea) {
 					Perf_NextEngagePoint.Stop();
 					return true;
@@ -542,7 +544,7 @@ namespace AdaptivePath {
 		double dist = DistanceSqrd(c1,c2);
 		if(dist<NTOL) return 0;
 
-		// /// old alg		
+		// // /// old alg
 		// // 1. find differene beween old and new tool shape
 		// Path oldTool;
 		// Path newTool;
@@ -566,23 +568,24 @@ namespace AdaptivePath {
 		// for(Path &path : cutAreaPoly) {
 		// 	areaSum += fabs(Area(path));
 		// }
-	
+
 
 		/// new alg
 
 		double rsqrd=toolRadiusScaled*toolRadiusScaled;
     	double area =0;
-		//  ClearScreenFn();
-		//  DrawPaths(cleared_paths,1);
-		//  DrawCircle(c1,toolRadiusScaled,0);
-		//  DrawCircle(c2,toolRadiusScaled,2);
 
+		// ClearScreenFn();
+		// DrawPaths(cleared_paths,2);
+		//  DrawCircle(c1,toolRadiusScaled,0);
+		//  DrawCircle(c2,toolRadiusScaled,1);
+		bool first=true;
 		for(const Path &path : cleared_paths) {
 			size_t size = path.size();
 			size_t curPtIndex = 0;
 			bool found=false;
 			// step 1: we find the starting point on the cleared path that is outside new tool shape (c2)
-			for(size_t i=0;i<size;i++) {				
+			for(size_t i=0;i<size;i++) {
 				if(DistanceSqrd(path[curPtIndex],c2)>rsqrd) {
 					found = true;
 					break;
@@ -590,13 +593,12 @@ namespace AdaptivePath {
 				curPtIndex++; if(curPtIndex>=size) curPtIndex=0;
 			}
 			if(!found) continue; // try anohter path
-			
+
 			// step 2: iterate throuh path from starting point and find the part of the path inside the c2
 			size_t prevPtIndex = curPtIndex;			
 			IntPoint clp; // to hold closest point
 			vector<DoublePoint> inters; // to hold intersection results
 			Path innerPathC2;
-			Path innerPathC1;			
 			bool prev_inside=false;
 			const IntPoint *p1=&path[prevPtIndex];
 			bool process=false;			
@@ -614,15 +616,16 @@ namespace AdaptivePath {
 							if(inters.size()>1) {
 								innerPathC2.push_back(IntPoint(inters[1].X,inters[1].Y));
 								process=true;				
-								prev_inside=false;			
+								prev_inside=false;
 							} else {
 								innerPathC2.push_back(IntPoint(*p2));
-							}						
+							}
 						} else { // no intersection - must be edge case, add p2
+							//prev_inside=false;
 							innerPathC2.push_back(IntPoint(*p2));
 						}
 					}
-				} else { // state: inside 
+				} else { // state: inside
 					if( (DistanceSqrd(c2,*p2) <= rsqrd)) {  // next point still inside, add it and continue, no state change
 						innerPathC2.push_back(IntPoint(*p2));
 					} else { // prev point inside, current point outside, find instersection
@@ -645,61 +648,139 @@ namespace AdaptivePath {
 						const IntPoint &fpc2=innerPathC2[0]; // first point
 						const IntPoint &lpc2=innerPathC2[ipc2_size-1]; // last point
 
+						const double fdx=double(lpc2.X-fpc2.X); // general path direction
+						const double fdy=double(lpc2.Y-fpc2.Y); // general path direction
+						const double side=PointSideOfLine(fpc2,lpc2,c2);
+						//cout << side << endl;
 						Paths inPaths;
 						inPaths.push_back(innerPathC2);
 						// DrawPath(innerPathC2,10);
 						// DrawCircle(fpc2,scaleFactor/4,1);
 						// DrawCircle(lpc2,scaleFactor/4,2);
-						Path pthToSubtract;
-
-						pthToSubtract << c2;
+						Path pthToSubtract ;
+						pthToSubtract << fpc2;
 
 						double fi1 = atan2(fpc2.Y-c2.Y,fpc2.X-c2.X);
 						double fi2 = atan2(lpc2.Y-c2.Y,lpc2.X-c2.X);
 						double minFi=fi1;
 						double maxFi=fi2;
-						if(maxFi<minFi) maxFi += 2*M_PI;						
+						double scanLen = 2.5*toolRadiusScaled;
+						if(maxFi<minFi) maxFi += 2*M_PI;
+						// stepping through path discretized to stepDistance
+						double stepDistance=2*RESOLUTION_FACTOR+1;
+						const IntPoint * prevPt=&innerPathC2[0];
 
-						double deltaFi=M_PI/32;
-						double len = toolRadiusScaled*2;
+						for(size_t j=1;j<ipc2_size;j++) {
+							const IntPoint * cpt =&innerPathC2[j];
+							double segLen = sqrt(DistanceSqrd(*cpt,*prevPt));
+							if(segLen<NTOL) continue; // skip point - segment too short
+							for(double pos_unclamped=0.0;pos_unclamped<segLen+stepDistance;pos_unclamped+=stepDistance) {
+								double pos=pos_unclamped;
+								if(pos>segLen) pos=segLen; // make sure we get exact end point
+								double dx=double(cpt->X-prevPt->X);
+								double dy=double(cpt->Y-prevPt->Y);
+								//double sdx=double(cpt->X-c2.X);
+								//double sdy=double(cpt->Y-c2.Y);
+								IntPoint segPoint(prevPt->X + dx*pos/segLen, prevPt->Y + dy*pos/segLen);
+								IntPoint perpPoint(segPoint.X + fdy*scanLen/segLen,segPoint.Y - fdx*scanLen/segLen);
+								//IntPoint perpPoint(segPoint.X + sdx*scanLen/segLen,segPoint.Y + sdy*scanLen/segLen);
 
-						for(double fi=minFi;fi<=maxFi+deltaFi;fi+=deltaFi) {
-							double fi_clamped=fi;
-							if(fi_clamped>maxFi) fi_clamped=maxFi;							
-							IntPoint c(c2.X + len*cos(fi_clamped),c2.Y + len*sin(fi_clamped));
-							double distC1Sqrd = __DBL_MAX__;
-							double distToClearSqrd = rsqrd;							
-							// find intersections  c2->c with c1
-							if(Line2CircleIntersect(c1,toolRadiusScaled,c2,c,inters)) {
-								if(inters.size()==2) {
-									double d1sq=DistanceSqrd(IntPoint(inters[0].X,inters[0].Y),c2);
-									double d2sq=DistanceSqrd(IntPoint(inters[1].X,inters[1].Y),c2);
-									distC1Sqrd=max(d1sq,d2sq);
+								// cout << segPoint <<endl;
+								// cout << perpPoint <<endl;
+								// DrawCircle(perpPoint,scaleFactor/4,1);
+								// DrawCircle(segPoint,scaleFactor/4,20);
+
+
+								IntPoint intersC2(segPoint.X,segPoint.Y);
+								IntPoint intersC1(segPoint.X,segPoint.Y);
+
+								// there should be intersection with C2
+								if(Line2CircleIntersect(c2,toolRadiusScaled,segPoint,perpPoint,inters)) {
+									if(inters.size()>1) {
+										// cerr<<"ERROR_3: unexpected number of intersections found" << endl;
+										// cout << "segPoint:" << segPoint << endl;
+										// cout << "1: " << "X:" << inters[0].X << " Y:" << inters[0].Y << endl;
+										// cout << "2: " << "X:" << inters[1].X << " Y:" << inters[1].Y << endl;
+										intersC2.X = inters[1].X;
+										intersC2.Y = inters[1].Y;
+									} else {
+										intersC2.X = inters[0].X;
+										intersC2.Y = inters[0].Y;
+									}
 								} else {
-									distC1Sqrd=DistanceSqrd(IntPoint(inters[0].X,inters[0].Y),c2);
+									pthToSubtract.push_back(segPoint);
 								}
-							} 
-							// distance to cleared path							
-							IntPoint interP;
-							bool clearedPathInsideC1=false;
-							if(IntersectionPoint(inPaths,c2,c,interP)) {
-								distToClearSqrd = DistanceSqrd(interP,c2);
-								if(DistanceSqrd(interP,c1)<=rsqrd) clearedPathInsideC1=true;
+
+								if(Line2CircleIntersect(c1,toolRadiusScaled,segPoint,perpPoint,inters)) {
+										if(inters.size()>1) {
+											// cerr<<"ERROR_4: unexpected number of intersections found" << endl;
+											// cout << "segPoint:" << segPoint << endl;
+											// cout << "1: " << "X:" << inters[0].X << " Y:" << inters[0].Y << endl;
+											// cout << "2: " << "X:" << inters[1].X << " Y:" << inters[1].Y << endl;
+											intersC1.X = inters[1].X;
+											intersC1.Y = inters[1].Y;
+										} else {
+											intersC1.X = inters[0].X;
+											intersC1.Y = inters[0].Y;
+										}
+									if(DistanceSqrd(segPoint,intersC2)<DistanceSqrd(segPoint,intersC1)) {
+										pthToSubtract.push_back(intersC2);
+									} else {
+										pthToSubtract.push_back(intersC1);
+									}
+
+								} else { // add the point if not intersection with C1
+									pthToSubtract.push_back(segPoint);
+								}
 							}
-							// the final point distance from c2
-							double distSqr = distToClearSqrd;
-							if(clearedPathInsideC1) distSqr=min(rsqrd,distC1Sqrd);
-							// else 
-							// if(distC1Sqrd>distToClearSqrd) {
-							// 	if(distC1Sqrd>rsqrd) {
-							// 		distSqr=rsqrd;	
-							// 	} else {
-							// 		distSqr=distC1Sqrd;
-							// 	}
-							// }
-							double dist=sqrt(distSqr);
-							pthToSubtract<<IntPoint(c2.X + dist*cos(fi_clamped),c2.Y + dist*sin(fi_clamped));
+							prevPt = cpt;
 						}
+
+						pthToSubtract << lpc2;
+						// if circle center point c2 not in polygon
+						if(PointInPolygon(c2,pthToSubtract)==0) {
+							pthToSubtract.push_back(c2);
+						}
+						// double deltaFi=M_PI/32;
+						// double len = toolRadiusScaled*2;
+
+						// for(double fi=minFi;fi<=maxFi+deltaFi;fi+=deltaFi) {
+						// 	double fi_clamped=fi;
+						// 	if(fi_clamped>maxFi) fi_clamped=maxFi;
+						// 	IntPoint c(c2.X + len*cos(fi_clamped),c2.Y + len*sin(fi_clamped));
+						// 	double distC1Sqrd = __DBL_MAX__;
+						// 	double distToClearSqrd = rsqrd;							
+						// 	// find intersections  c2->c with c1
+						// 	if(Line2CircleIntersect(c1,toolRadiusScaled,c2,c,inters)) {
+						// 		if(inters.size()==2) {
+						// 			double d1sq=DistanceSqrd(IntPoint(inters[0].X,inters[0].Y),c2);
+						// 			double d2sq=DistanceSqrd(IntPoint(inters[1].X,inters[1].Y),c2);
+						// 			distC1Sqrd=max(d1sq,d2sq);
+						// 		} else {
+						// 			distC1Sqrd=DistanceSqrd(IntPoint(inters[0].X,inters[0].Y),c2);
+						// 		}
+						// 	} 
+						// 	// distance to cleared path							
+						// 	IntPoint interP;
+						// 	bool clearedPathInsideC1=false;
+						// 	if(IntersectionPoint(inPaths,c2,c,interP)) {
+						// 		distToClearSqrd = DistanceSqrd(interP,c2);
+						// 		if(DistanceSqrd(interP,c1)<=rsqrd) clearedPathInsideC1=true;
+						// 	}
+						// 	// the final point distance from c2
+						// 	double distSqr = distToClearSqrd;
+						// 	if(clearedPathInsideC1) distSqr=min(rsqrd,distC1Sqrd);
+						// 	// else 
+						// 	// if(distC1Sqrd>distToClearSqrd) {
+						// 	// 	if(distC1Sqrd>rsqrd) {
+						// 	// 		distSqr=rsqrd;	
+						// 	// 	} else {
+						// 	// 		distSqr=distC1Sqrd;
+						// 	// 	}
+						// 	// }
+						// 	double dist=sqrt(distSqr);
+						// 	pthToSubtract<<IntPoint(c2.X + dist*cos(fi_clamped),c2.Y + dist*sin(fi_clamped));
+						// }
 						//DrawPath(pthToSubtract,22);
 						double segArea =Area(pthToSubtract);
 						// double diffAngle = fabs( fi1 - fi2 );
@@ -708,24 +789,27 @@ namespace AdaptivePath {
 						double A=(maxFi-minFi)*rsqrd/2;
 						//cout << "A:" << A << " segArea:" << segArea << endl;
 						// final cut area
-						area+=A- fabs(segArea);
-
-						// if(fabs(area-areaSum)/(area+areaSum)>0.5) {
-						// 	 ClearScreenFn();
-						// 	DrawPath(innerPathC2,10);
-						// 	DrawPaths(cleared_paths,1);
-						// 	DrawCircle(c1,toolRadiusScaled,0);
-						// 	DrawCircle(c2,toolRadiusScaled,2);
-						// 	DrawCircle(fpc2,scaleFactor/4,1);
-						// 	DrawCircle(lpc2,scaleFactor/4,2);
-						// 	DrawPath(pthToSubtract,22);
+						//if(side<0)
+							area+=A- fabs(segArea);
+						//  else
+						//  	area+=A- fabs(segArea);
+						// if(fabs(area-areaSum)/(area+areaSum)>0.1) {
+						// 	cout<< "PolyArea:" << areaSum << " new area:" << area << endl;
+							//  ClearScreenFn();
+							// DrawPath(innerPathC2,10);
+							// DrawPaths(cleared_paths,1);
+							// DrawCircle(c1,toolRadiusScaled,0);
+							// DrawCircle(c2,toolRadiusScaled,2);
+							// DrawCircle(fpc2,scaleFactor/4,1);
+							// DrawCircle(lpc2,scaleFactor/4,2);
+							// DrawPath(pthToSubtract,22);
 						// }
-				}				
-				prevPtIndex = curPtIndex;				
+				}
+				prevPtIndex = curPtIndex;
 				p1 = p2;
 			}
 		}
-		// cout<< "PolyArea:" << areaSum << " new area:" << area << endl;
+		//  cout<< "PolyArea:" << areaSum << " new area:" << area << endl;
 
 		Perf_CalcCutArea.Stop();
 
@@ -1159,8 +1243,8 @@ namespace AdaptivePath {
 			} else {
 				// double moveDistance = stepOverFactor * toolRadiusScaled/2+1;
 				// if(!engage.nextEngagePoint(cleared,moveDistance,moveDistance*2, 1.5*optimalCutAreaPD*moveDistance)) break;
-				double moveDistance = stepOverFactor * toolRadiusScaled/2+1;
-				if(!engage.nextEngagePoint(cleared,moveDistance,0.1*optimalCutAreaPD*moveDistance, 1.5*optimalCutAreaPD*moveDistance)) break;
+				double moveDistance = stepOverFactor * toolRadiusScaled+1;
+				if(!engage.nextEngagePoint(this, cleared,moveDistance,0.2*optimalCutAreaPD*moveDistance, 1.5*optimalCutAreaPD*moveDistance)) break;
 			}
 			toolPos = engage.getCurrentPoint();
 			toolDir = engage.getCurrentDir();
@@ -1168,7 +1252,6 @@ namespace AdaptivePath {
 			progressInfo.SetClipperPath(passToolPath,scaleFactor, false);
 			progressInfo.SetEngagePoint(toolPos,toolDir, scaleFactor);
 			progressCallbackFn(progressInfo);
-
 		}
 		Perf_ProcessPolyNode.Stop();
 		Perf_ProcessPolyNode.DumpResults();

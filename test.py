@@ -11,7 +11,7 @@ center_y = 79.91
 
 x_off = 1024/2 
 y_off = 768/2
-scale = 5.0
+scale = 3
 
 screen=pygame.display.set_mode((1024,768))
 screen.fill((255,255,255))
@@ -57,7 +57,7 @@ def feecback(a):
    # drawToolPos(a.EngagePos,a.EngageDir,(255,0,0))
    # drawToolPos(a.ToolPos,a.ToolDir,(255,0,255))
     pygame.display.update()
-
+    doEvents()
     ##time.sleep(0.001)
 
 def getColor(color):
@@ -85,7 +85,7 @@ def drawPath(path, color):
         pts.append(transCoord(p))
     pygame.draw.lines(screen,getColor(color),False,pts,width)
     pygame.display.update()
-    if(color>=20): time.sleep(5)
+    if(color>=20): time.sleep(3)
     doEvents()
 
 a2d = PathAdaptiveCore.Adaptive2d()

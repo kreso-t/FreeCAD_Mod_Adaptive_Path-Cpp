@@ -70,7 +70,7 @@ namespace AdaptivePath {
 			Adaptive2d();
 			double toolDiameter=5;
 			double helixRampDiameter=0;
-			double stepOverFactor = 0.2;
+			double stepOverFactor = 0.3;
 			int polyTreeNestingLimit=0;
 			double tolerance=0.1;
 			std::list<AdaptiveOutput> Execute(const DPaths &paths);
@@ -105,7 +105,7 @@ namespace AdaptivePath {
 			void ProcessPolyNode(const Paths & boundPaths, const Paths & toolBoundPaths );
 			bool FindEntryPoint(const Paths & toolBoundPaths, IntPoint &entryPoint /*output*/);
 			double CalcCutArea(Clipper & clip,const IntPoint &toolPos, const IntPoint &newToolPos, const Paths &cleared_paths);
-
+			friend class EngagePoint;
 			//debugging
 			void DrawCircle(const IntPoint &  cp, double radiusScaled, int color ) {
 				DrawCircleFn(1.0*cp.X/ scaleFactor, 1.0 *cp.Y/scaleFactor, radiusScaled/scaleFactor,color);
@@ -127,10 +127,10 @@ namespace AdaptivePath {
 		private: // constants
 			//const double RESOLUTION_FACTOR = 8.0;
 			const double RESOLUTION_FACTOR = 10.0;
-			const int MAX_ITERATIONS = 12;
-			const double AREA_ERROR_FACTOR = 40; /* how precise to match the cut area to optimal */
-			const long PASSES_LIMIT = 1000000; // used for debugging 
-			const long POINTS_PER_PASS_LIMIT = 10000000; // used for debugging 
+			const int MAX_ITERATIONS = 16;
+			const double AREA_ERROR_FACTOR = 20; /* how precise to match the cut area to optimal */
+			const long PASSES_LIMIT = 1000000; // used for debugging
+			const long POINTS_PER_PASS_LIMIT = 10000000; // used for debugging
 			const int ANGLE_HISTORY_POINTS=10;
 
 	};
