@@ -6,10 +6,12 @@ pygame.init()
 # x_off = 1024/2 - 200
 # y_off = 768/2 + 200
 # scale = 4.0
+center_x = 17.58
+center_y = 79.91
 
-x_off = 1024/2 - 200
-y_off = 768/2 + 1500
-scale = 20.0
+x_off = 1024/2 
+y_off = 768/2
+scale = 5.0
 
 screen=pygame.display.set_mode((1024,768))
 screen.fill((255,255,255))
@@ -17,7 +19,7 @@ toolDia = 5
 paths=[]
 
 def transCoord(pos):
-    return [x_off + int(scale*pos[0]) ,y_off - int(scale*pos[1])]
+    return [x_off + int(scale*(pos[0]-center_x)) ,y_off - int(scale*(pos[1]-center_y))]
 
 def drawPaths(paths, closed = False):
     for path in paths:
@@ -39,10 +41,10 @@ def clear():
     screen.fill((255,255,255))
     drawPaths(paths)
 def doEvents():
-	for event in pygame.event.get():
-	    if event.type == pygame.QUIT:
-	        pygame.quit()
-	        sys.exit()
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
 def feecback(a):
     global count
     #print "feedback",a.CurrentPath
@@ -52,33 +54,39 @@ def feecback(a):
     #     count =0
 
     drawPaths([a.CurrentPath])
-    drawToolPos(a.EngagePos,a.EngageDir,(255,0,0))
-    drawToolPos(a.ToolPos,a.ToolDir,(255,0,255))
+   # drawToolPos(a.EngagePos,a.EngageDir,(255,0,0))
+   # drawToolPos(a.ToolPos,a.ToolDir,(255,0,255))
     pygame.display.update()
 
     ##time.sleep(0.001)
 
 def getColor(color):
-	if color==0: return (0,0,0)
-	if color==1: return (255,0,0)
-	if color==2: return (0,255,0)
-	if color==3: return (0,0,255)
-	if color==4: return (255,0,255)
-	if color==5: return (255,255,0)
-	return (0,0,0)
+    color = color % 6
+    if color==0: return (0,0,0)
+    if color==1: return (255,0,0)
+    if color==2: return (0,255,0)
+    if color==3: return (0,0,255)
+    if color==4: return (255,0,255)
+    if color==5: return (255,255,0)
+    return (0,0,0)
 
 def drawCircle(x,y, radius, color):
-	pygame.draw.circle(screen, getColor(color),transCoord([x,y]) ,int(radius*scale)+1, 1)
-	pygame.display.update()
-	time.sleep(0.1)
-	doEvents()
+    pygame.draw.circle(screen, getColor(color),transCoord([x,y]) ,int(radius*scale)+1, 1)
+    pygame.display.update()
+    if(color>=20):time.sleep(0.1)
+    doEvents()
 
 def drawPath(path, color):
-	pts = []
-  	for p in path:
-	      pts.append(transCoord(p))
-	pygame.draw.lines(screen,getColor(color),False,pts,1)
-	doEvents()
+    pts = []
+    width = 1
+    if len(path) < 2: return
+    if color>10: width = 3
+    for p in path:
+        pts.append(transCoord(p))
+    pygame.draw.lines(screen,getColor(color),False,pts,width)
+    pygame.display.update()
+    if(color>=20): time.sleep(5)
+    doEvents()
 
 a2d = PathAdaptiveCore.Adaptive2d()
 a2d.DrawCircleFn = drawCircle

@@ -70,7 +70,7 @@ namespace AdaptivePath {
 			Adaptive2d();
 			double toolDiameter=5;
 			double helixRampDiameter=0;
-			double stepOverFactor = 0.4;
+			double stepOverFactor = 0.2;
 			int polyTreeNestingLimit=0;
 			double tolerance=0.1;
 			std::list<AdaptiveOutput> Execute(const DPaths &paths);
@@ -98,7 +98,8 @@ namespace AdaptivePath {
 			double optimalCutAreaPD=0;
 			double minCutAreaPD=0;
 
-			Path toolGeometry; // tool geometry at coord 0,0, should not be modified
+			Path toolGeometry; // tool geometry at coord 0,0, should not be modified			
+			Path toolGeometry2; // tool geometry at coord 0,0, should not be modified			
 			Path boundBoxGeometry; // bound box geometry at 0,0, should not be modified
 
 			void ProcessPolyNode(const Paths & boundPaths, const Paths & toolBoundPaths );
@@ -126,10 +127,10 @@ namespace AdaptivePath {
 		private: // constants
 			//const double RESOLUTION_FACTOR = 8.0;
 			const double RESOLUTION_FACTOR = 10.0;
-			const int MAX_ITERATIONS = 8;
+			const int MAX_ITERATIONS = 12;
 			const double AREA_ERROR_FACTOR = 40; /* how precise to match the cut area to optimal */
-			const long PASSES_LIMIT = 1000; // used for debugging purposes
-			const long POINTS_PER_PASS_LIMIT = 10000; // used for debugging purposes
+			const long PASSES_LIMIT = 1000000; // used for debugging 
+			const long POINTS_PER_PASS_LIMIT = 10000000; // used for debugging 
 			const int ANGLE_HISTORY_POINTS=10;
 
 	};
