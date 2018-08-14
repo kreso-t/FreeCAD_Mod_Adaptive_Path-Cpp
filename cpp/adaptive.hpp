@@ -2,19 +2,26 @@
 #include <vector>
 #include <list>
 
+#ifndef ADAPTIVE_HPP
+#define ADAPTIVE_HPP
+
+//#define DEBUG_VISALIZATION
+
 #define NTOL 1.0e-7  // numeric tolerance
 
 namespace AdaptivePath {
 	using namespace ClipperLib;
 
-	enum MoveType { mtCutting = 0, mtLinkClear = 1, mtLinkNotClear = 2, mtLinkClearAtPrevPass = 3  };
+	enum MotionType { mtCutting = 0, mtLinkClear = 1, mtLinkNotClear = 2, mtLinkClearAtPrevPass = 3  };
+
+	enum OperationType { otClearing = 0, otProfilingInside = 1, otProfilingOutside = 2 };
 
 	typedef std::pair<double,double> DPoint;
 	typedef std::vector<DPoint> DPath;
 	typedef std::vector<DPath> DPaths;
 	struct TPath {
 		DPath Points;
-		MoveType MType;
+		MotionType MType;
 	};
 	typedef std::vector<TPath> TPaths;
 
@@ -22,7 +29,7 @@ namespace AdaptivePath {
 		public:
 			DPoint HelixCenterPoint;
 			TPaths AdaptivePaths;
-			MoveType ReturnMoveType;
+			MotionType ReturnMotionType;
 	};
 
 	// used to isolate state -> enable potential adding of multi-threaded processing of separate regions
@@ -34,13 +41,18 @@ namespace AdaptivePath {
 			double helixRampDiameter=0;
 			double stepOverFactor = 0.2;
 			int polyTreeNestingLimit=0;
+			bool processHoles=true;
 			double tolerance=0.1;
-			std::list<AdaptiveOutput> Execute(const DPaths &paths, std::function<bool(TPaths &)> &progressCallbackFn);
-			
+			OperationType opType = OperationType::otClearing;
+
+			std::list<AdaptiveOutput> Execute(const DPaths &paths, std::function<bool(TPaths)> progressCallbackFn);
+
+			#ifdef DEBUG_VISALIZATION
 			/*for debugging*/
 			std::function<void(double cx,double cy, double radius, int color)> DrawCircleFn;
 			std::function<void(const DPath &, int color)> DrawPathFn;
 			std::function<void()> ClearScreenFn;
+			#endif
 
 		private:
 			std::list<AdaptiveOutput> results;
@@ -57,9 +69,8 @@ namespace AdaptivePath {
 
 			time_t lastProgressTime = 0;
 			
-			std::function<bool(TPaths &)> * progressCallback=NULL;
-			Path toolGeometry; // tool geometry at coord 0,0, should not be modified								
-			Path boundBoxGeometry; // bound box geometry at 0,0, should not be modified
+			std::function<bool(TPaths)> * progressCallback=NULL;
+			Path toolGeometry; // tool geometry at coord 0,0, should not be modified
 
 			void ProcessPolyNode(const Paths & boundPaths, const Paths & toolBoundPaths);
 			bool FindEntryPoint(const Paths & toolBoundPaths, IntPoint &entryPoint /*output*/);
@@ -72,9 +83,12 @@ namespace AdaptivePath {
 
 			//debugging
 			void DrawCircle(const IntPoint &  cp, double radiusScaled, int color ) {
-				DrawCircleFn(1.0*cp.X/ scaleFactor, 1.0 *cp.Y/scaleFactor, radiusScaled/scaleFactor,color);
+				#ifdef DEBUG_VISALIZATION
+					DrawCircleFn(1.0*cp.X/ scaleFactor, 1.0 *cp.Y/scaleFactor, radiusScaled/scaleFactor,color);
+				#endif
 			}
 			void DrawPath(const Path & path, int color ) {
+				#ifdef DEBUG_VISALIZATION
 				DPath dpath;
 				if(path.size()==0) return;
 				for(const IntPoint &pt : path) {
@@ -82,24 +96,31 @@ namespace AdaptivePath {
 					dpath.push_back(dpt);
 				}
 				DrawPathFn(dpath,color);
+				#endif
 			}
 
 			void DrawPaths(const Paths & paths, int color ) {
+				#ifdef DEBUG_VISALIZATION
 				for(const Path &p : paths) DrawPath(p,color);
+				#endif
 			}
 
 		private: // constants for fine tuning
+			const double RESOLUTION_FACTOR = 8.0;
+			const double MIN_CUT_AREA_FACTOR = 0.05; // filter cuts that with cumulative area below this threshold
+			const int MAX_ITERATIONS = 9;
 			//const double RESOLUTION_FACTOR = 8.0;
-			const double RESOLUTION_FACTOR = 10.0;
-			const int MAX_ITERATIONS = 16;
 			const double AREA_ERROR_FACTOR = 40; /* how precise to match the cut area to optimal */
 			const int ANGLE_HISTORY_POINTS=10;
 			const double ENGAGE_AREA_THR_FACTOR=0.1; // influences minimal engage area (factor relation to optimal)
 			const double ENGAGE_SCAN_DISTANCE_FACTOR=0.5; // influences the engage scan/stepping distance
-			const int DIRECTION_SMOOTHING_BUFLEN=5;
+			const int DIRECTION_SMOOTHING_BUFLEN=5; // gyro points
+			const double CLEAN_PATH_TOLERANCE = 1.41;
+			const double FINISHING_CLEAN_PATH_TOLERANCE = 1.41/2;
 
-			const long PASSES_LIMIT = 1000000; // limit used for debugging
-			const long POINTS_PER_PASS_LIMIT = 10000000; // limit used for debugging
-			const time_t PROGRESS_TICKS = CLOCKS_PER_SEC/4; // progress report interval 
+			const long PASSES_LIMIT = 10000000; // limit used for debugging
+			const long POINTS_PER_PASS_LIMIT = 100000000; // limit used for debugging
+			const time_t PROGRESS_TICKS = CLOCKS_PER_SEC/20; // progress report interval
 	};
 }
+#endif
