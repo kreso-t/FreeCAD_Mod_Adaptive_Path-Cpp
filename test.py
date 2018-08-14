@@ -13,12 +13,12 @@ pygame.init()
 # center_y = 72.55
 
 center_x = 50
-center_y = 20
+center_y = 50
 
 
-screen_x=1600
-screen_y=1200
-scale = 5
+screen_x=1024
+screen_y=768
+scale = 7
 
 screen=pygame.display.set_mode((screen_x,screen_y))
 screen.fill((255,255,255))
@@ -47,16 +47,20 @@ count = 0
 def clear():
     screen.fill((255,255,255))
     drawPaths(paths)
+
 def doEvents():
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
 
-
 def feecback(paths):
     global count
-    #print "feedback",paths
+    for path in paths:
+        drawPath(path.Points,3)
+        #print "feedback",dir(path)
+    pygame.display.update()
+    doEvents()
     count = count +1
     # if count > 10:
     #     clear()
@@ -82,7 +86,7 @@ def getColor(color):
 def drawCircle(x,y, radius, color):
     pygame.draw.circle(screen, getColor(color),transCoord([x,y]) ,int(radius*scale)+1, 1)
     pygame.display.update()
-    if(color>=20):time.sleep(0.1)
+    if(color>=20):time.sleep(1)
     doEvents()
 
 def drawPath(path, color):
@@ -93,18 +97,22 @@ def drawPath(path, color):
     for p in path:
         pts.append(transCoord(p))
     pygame.draw.lines(screen,getColor(color),False,pts,width)
+
+def drawPathFn(path, color):
+    drawPath(path, color)
     pygame.display.update()
-    if(color>=20): time.sleep(5)
-    doEvents()
+    if color>20: time.sleep(2)
 
 a2d = PathAdaptiveCore.Adaptive2d()
-a2d.DrawCircleFn = drawCircle
-a2d.ClearScreenFn = clear
-a2d.DrawPathFn = drawPath
+a2d.stepOverFactor=0.4
+a2d.tolerance = 0.1
+
+# a2d.DrawCircleFn = drawCircle
+# a2d.ClearScreenFn = clear
+# a2d.DrawPathFn = drawPathFn
 
 a2d.toolDiameter = toolDia
 
-a2d.polyTreeNestingLimit = 1
 
 path0 = [[-10,-10],[110,-10], [110,110], [-10,110]]
 path1 = [[0,0],[100,0], [100,100], [0,100]]
@@ -117,9 +125,30 @@ path2.reverse()
 paths.append(path1)
 paths.append(path2)
 clear()
+pygame.display.update()
+
+a2d.polyTreeNestingLimit = 0
+a2d.processHoles = True
+a2d.opType =  PathAdaptiveCore.OperationType.ProfilingInside
 result=a2d.Execute(paths,feecback)
 
+
+
+for output in result:
+    for pth in output.AdaptivePaths:
+        if pth.MType == PathAdaptiveCore.MotionType.Cutting:
+            drawPath(pth.Points,3)
+        elif pth.MType == PathAdaptiveCore.MotionType.LinkClear:
+            drawPath(pth.Points,2)
+        elif pth.MType == PathAdaptiveCore.MotionType.LinkNotClear:
+            drawPath(pth.Points,1)
+        elif pth.MType == PathAdaptiveCore.MotionType.LinkClearAtPrevPass:
+            drawPath(pth.Points,4)
+
+pygame.display.update()
 print result[0].HelixCenterPoint
 
+while True:
+    doEvents()
 
-pygame.quit()
+
