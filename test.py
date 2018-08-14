@@ -6,20 +6,27 @@ pygame.init()
 # x_off = 1024/2 - 200
 # y_off = 768/2 + 200
 # scale = 4.0
-center_x = 17.58
-center_y = 79.91
+# center_x = 17.58
+# center_y = 79.91
 
-x_off = 1024/2 
-y_off = 768/2
-scale = 20
+# center_x = 39.58
+# center_y = 72.55
 
-screen=pygame.display.set_mode((1024,768))
+center_x = 50
+center_y = 20
+
+
+screen_x=1600
+screen_y=1200
+scale = 5
+
+screen=pygame.display.set_mode((screen_x,screen_y))
 screen.fill((255,255,255))
 toolDia = 5
 paths=[]
 
 def transCoord(pos):
-    return [x_off + int(scale*(pos[0]-center_x)) ,y_off - int(scale*(pos[1]-center_y))]
+    return [screen_x/2 + int(scale*(pos[0]-center_x)) ,screen_y/2 - int(scale*(pos[1]-center_y))]
 
 def drawPaths(paths, closed = False):
     for path in paths:
@@ -45,19 +52,21 @@ def doEvents():
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
-def feecback(a):
+
+
+def feecback(paths):
     global count
-    #print "feedback",a.CurrentPath
+    #print "feedback",paths
     count = count +1
     # if count > 10:
     #     clear()
     #     count =0
 
-    drawPaths([a.CurrentPath])
+    #drawPaths([a.CurrentPath])
    # drawToolPos(a.EngagePos,a.EngageDir,(255,0,0))
    # drawToolPos(a.ToolPos,a.ToolDir,(255,0,255))
-    pygame.display.update()
-    doEvents()
+    #pygame.display.update()
+    #doEvents()
     ##time.sleep(0.001)
 
 def getColor(color):
@@ -85,7 +94,7 @@ def drawPath(path, color):
         pts.append(transCoord(p))
     pygame.draw.lines(screen,getColor(color),False,pts,width)
     pygame.display.update()
-    if(color>=20): time.sleep(3)
+    if(color>=20): time.sleep(5)
     doEvents()
 
 a2d = PathAdaptiveCore.Adaptive2d()
@@ -96,7 +105,6 @@ a2d.DrawPathFn = drawPath
 a2d.toolDiameter = toolDia
 
 a2d.polyTreeNestingLimit = 1
-a2d.SetProgressCallbackFn(feecback)
 
 path0 = [[-10,-10],[110,-10], [110,110], [-10,110]]
 path1 = [[0,0],[100,0], [100,100], [0,100]]
@@ -109,7 +117,9 @@ path2.reverse()
 paths.append(path1)
 paths.append(path2)
 clear()
-a2d.Execute(paths)
+result=a2d.Execute(paths,feecback)
+
+print result[0].HelixCenterPoint
 
 
 pygame.quit()

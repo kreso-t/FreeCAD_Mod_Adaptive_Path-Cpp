@@ -7,60 +7,22 @@
 namespace AdaptivePath {
 	using namespace ClipperLib;
 
-	enum MoveType { mtCutting = 0, mtLinkClear = 1, mtLinkClearAtPrevPass = 2, mtLinkClearAtSafeHeight = 3  };
+	enum MoveType { mtCutting = 0, mtLinkClear = 1, mtLinkNotClear = 2, mtLinkClearAtPrevPass = 3  };
 
-	typedef std::vector<std::pair<double,double>> DPath;
+	typedef std::pair<double,double> DPoint;
+	typedef std::vector<DPoint> DPath;
 	typedef std::vector<DPath> DPaths;
-
-	// represeting output toolpath in xy plane
-	// std::tuple<double,double,int> - first two values are x and y coord and thirs is the move type
-	typedef std::vector<std::tuple<double,double,MoveType>> TPath;
+	struct TPath {
+		DPath Points;
+		MoveType MType;
+	};
 	typedef std::vector<TPath> TPaths;
 
 	class AdaptiveOutput {
 		public:
-			std::pair<double,double> HelixCenterPoint;
+			DPoint HelixCenterPoint;
 			TPaths AdaptivePaths;
-	};
-
-	class ProgressInfo {
-		public:
-			int PassNo;
-			bool PassCompleted;
-			DPath CurrentPath;
-			std::pair<double,double> EngagePos;
-			std::pair<double,double> EngageDir;
-			std::pair<double,double> ToolPos;
-			std::pair<double,double> ToolDir;
-
-			void SetClipperPath(const Path pth, double scaleFactor, bool closed=false) {
-				CurrentPath.resize(0);
-				CurrentPath.reserve(pth.size());
-				if(pth.size()==0) return;
-				for(int i=0;i<pth.size();i++) {
-					std::pair<double,double> p = std::pair<double,double>((double)pth[i].X/scaleFactor, (double)pth[i].Y/scaleFactor);
-					CurrentPath.push_back(p);
-				}
-				if(closed) {
-					std::pair<double,double> p = std::pair<double,double>((double)pth[0].X/scaleFactor, (double)pth[0].Y/scaleFactor);
-					CurrentPath.push_back(p);
-				}
-			}
-
-			void SetEngagePoint(const IntPoint &pos, const DoublePoint &dir, double scaleFactor) {
-				EngagePos.first = pos.X/scaleFactor;
-				EngagePos.second = pos.Y/scaleFactor;
-				EngageDir.first = dir.X/scaleFactor;
-				EngageDir.second = dir.Y/scaleFactor;
-			}
-
-			void SetToolPos(const IntPoint &pos, const DoublePoint &dir, double scaleFactor) {
-				ToolPos.first = pos.X/scaleFactor;
-				ToolPos.second = pos.Y/scaleFactor;
-				ToolDir.first = dir.X/scaleFactor;
-				ToolDir.second = dir.Y/scaleFactor;
-			}
-
+			MoveType ReturnMoveType;
 	};
 
 	// used to isolate state -> enable potential adding of multi-threaded processing of separate regions
@@ -70,22 +32,17 @@ namespace AdaptivePath {
 			Adaptive2d();
 			double toolDiameter=5;
 			double helixRampDiameter=0;
-			double stepOverFactor = 0.5;
+			double stepOverFactor = 0.2;
 			int polyTreeNestingLimit=0;
 			double tolerance=0.1;
-			std::list<AdaptiveOutput> Execute(const DPaths &paths);
-
-			void SetProgressCallbackFn(std::function<bool(ProgressInfo &)> &fn) {
-				progressCallbackFn=fn;
-			}
+			std::list<AdaptiveOutput> Execute(const DPaths &paths, std::function<bool(TPaths &)> &progressCallbackFn);
+			
 			/*for debugging*/
 			std::function<void(double cx,double cy, double radius, int color)> DrawCircleFn;
 			std::function<void(const DPath &, int color)> DrawPathFn;
 			std::function<void()> ClearScreenFn;
 
 		private:
-			std::function<bool(ProgressInfo &)> progressCallbackFn;
-			ProgressInfo progressInfo;
 			std::list<AdaptiveOutput> results;
 			Paths inputPaths;
 
@@ -98,14 +55,21 @@ namespace AdaptivePath {
 			double optimalCutAreaPD=0;
 			double minCutAreaPD=0;
 
-			Path toolGeometry; // tool geometry at coord 0,0, should not be modified			
-			Path toolGeometry2; // tool geometry at coord 0,0, should not be modified			
+			time_t lastProgressTime = 0;
+			
+			std::function<bool(TPaths &)> * progressCallback=NULL;
+			Path toolGeometry; // tool geometry at coord 0,0, should not be modified								
 			Path boundBoxGeometry; // bound box geometry at 0,0, should not be modified
 
-			void ProcessPolyNode(const Paths & boundPaths, const Paths & toolBoundPaths );
+			void ProcessPolyNode(const Paths & boundPaths, const Paths & toolBoundPaths);
 			bool FindEntryPoint(const Paths & toolBoundPaths, IntPoint &entryPoint /*output*/);
 			double CalcCutArea(Clipper & clip,const IntPoint &toolPos, const IntPoint &newToolPos, const Paths &cleared_paths);
-			friend class EngagePoint;
+			void AppendToolPath(AdaptiveOutput & output,const Path & passToolPath,const Paths & cleared, bool close=false);
+			bool  CheckCollision(const IntPoint &lastPoint,const IntPoint &nextPoint,const Paths & cleared);
+			friend class EngagePoint; // for CalcCutArea
+
+			void CheckReportProgress(TPaths &progressPaths);
+
 			//debugging
 			void DrawCircle(const IntPoint &  cp, double radiusScaled, int color ) {
 				DrawCircleFn(1.0*cp.X/ scaleFactor, 1.0 *cp.Y/scaleFactor, radiusScaled/scaleFactor,color);
@@ -124,14 +88,18 @@ namespace AdaptivePath {
 				for(const Path &p : paths) DrawPath(p,color);
 			}
 
-		private: // constants
+		private: // constants for fine tuning
 			//const double RESOLUTION_FACTOR = 8.0;
 			const double RESOLUTION_FACTOR = 10.0;
 			const int MAX_ITERATIONS = 16;
-			const double AREA_ERROR_FACTOR = 20; /* how precise to match the cut area to optimal */
-			const long PASSES_LIMIT = 1000000; // used for debugging
-			const long POINTS_PER_PASS_LIMIT = 10000000; // used for debugging
+			const double AREA_ERROR_FACTOR = 40; /* how precise to match the cut area to optimal */
 			const int ANGLE_HISTORY_POINTS=10;
+			const double ENGAGE_AREA_THR_FACTOR=0.1; // influences minimal engage area (factor relation to optimal)
+			const double ENGAGE_SCAN_DISTANCE_FACTOR=0.5; // influences the engage scan/stepping distance
+			const int DIRECTION_SMOOTHING_BUFLEN=5;
 
+			const long PASSES_LIMIT = 1000000; // limit used for debugging
+			const long POINTS_PER_PASS_LIMIT = 10000000; // limit used for debugging
+			const time_t PROGRESS_TICKS = CLOCKS_PER_SEC/4; // progress report interval 
 	};
 }
