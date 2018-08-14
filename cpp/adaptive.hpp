@@ -70,7 +70,7 @@ namespace AdaptivePath {
 			Adaptive2d();
 			double toolDiameter=5;
 			double helixRampDiameter=0;
-			double stepOverFactor = 0.3;
+			double stepOverFactor = 0.5;
 			int polyTreeNestingLimit=0;
 			double tolerance=0.1;
 			std::list<AdaptiveOutput> Execute(const DPaths &paths);

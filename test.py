@@ -11,7 +11,7 @@ center_y = 79.91
 
 x_off = 1024/2 
 y_off = 768/2
-scale = 3
+scale = 20
 
 screen=pygame.display.set_mode((1024,768))
 screen.fill((255,255,255))

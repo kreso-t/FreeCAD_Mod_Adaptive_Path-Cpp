@@ -544,30 +544,30 @@ namespace AdaptivePath {
 		double dist = DistanceSqrd(c1,c2);
 		if(dist<NTOL) return 0;
 
-		// // /// old alg
-		// // 1. find differene beween old and new tool shape
-		// Path oldTool;
-		// Path newTool;
-		// TranslatePath(toolGeometry,oldTool,c1);
-		// TranslatePath(toolGeometry,newTool,c2);
-		// clip.Clear();
-		// clip.AddPath(newTool, PolyType::ptSubject, true);
-		// clip.AddPath(oldTool, PolyType::ptClip, true);
-		// Paths toolDiff;
-		// clip.Execute(ClipType::ctDifference,toolDiff);
+		// /// old alg
+		// 1. find differene beween old and new tool shape
+		Path oldTool;
+		Path newTool;
+		TranslatePath(toolGeometry,oldTool,c1);
+		TranslatePath(toolGeometry,newTool,c2);
+		clip.Clear();
+		clip.AddPath(newTool, PolyType::ptSubject, true);
+		clip.AddPath(oldTool, PolyType::ptClip, true);
+		Paths toolDiff;
+		clip.Execute(ClipType::ctDifference,toolDiff);
 
-		// // 2. difference to cleared
-		// clip.Clear();
-		// clip.AddPaths(toolDiff,PolyType::ptSubject, true);
-		// clip.AddPaths(cleared_paths,PolyType::ptClip, true);
-		// Paths cutAreaPoly;
-		// clip.Execute(ClipType::ctDifference, cutAreaPoly);
+		// 2. difference to cleared
+		clip.Clear();
+		clip.AddPaths(toolDiff,PolyType::ptSubject, true);
+		clip.AddPaths(cleared_paths,PolyType::ptClip, true);
+		Paths cutAreaPoly;
+		clip.Execute(ClipType::ctDifference, cutAreaPoly);
 
-		// // calculate resulting area
-		// double areaSum=0;
-		// for(Path &path : cutAreaPoly) {
-		// 	areaSum += fabs(Area(path));
-		// }
+		// calculate resulting area
+		double areaSum=0;
+		for(Path &path : cutAreaPoly) {
+			areaSum += fabs(Area(path));
+		}
 
 
 		/// new alg
@@ -634,7 +634,9 @@ namespace AdaptivePath {
 								cerr<<"ERROR_2: unexpected number of intersections found" << endl;
 							}
 							innerPathC2.push_back(IntPoint(inters[0].X,inters[0].Y));
-						} // if not found, must be edge case, don't add point as already there
+						} else {
+							//innerPathC2.push_back(IntPoint(*p2));
+						}
 						process=true;	
 						prev_inside=false;						
 					}
@@ -667,7 +669,7 @@ namespace AdaptivePath {
 						double scanLen = 2.5*toolRadiusScaled;
 						if(maxFi<minFi) maxFi += 2*M_PI;
 						// stepping through path discretized to stepDistance
-						double stepDistance=2*RESOLUTION_FACTOR+1;
+						double stepDistance=0.5*RESOLUTION_FACTOR+1;
 						const IntPoint * prevPt=&innerPathC2[0];
 
 						for(size_t j=1;j<ipc2_size;j++) {
@@ -793,17 +795,17 @@ namespace AdaptivePath {
 							area+=A- fabs(segArea);
 						//  else
 						//  	area+=A- fabs(segArea);
-						// if(fabs(area-areaSum)/(area+areaSum)>0.1) {
-						// 	cout<< "PolyArea:" << areaSum << " new area:" << area << endl;
-							//  ClearScreenFn();
-							// DrawPath(innerPathC2,10);
-							// DrawPaths(cleared_paths,1);
-							// DrawCircle(c1,toolRadiusScaled,0);
-							// DrawCircle(c2,toolRadiusScaled,2);
-							// DrawCircle(fpc2,scaleFactor/4,1);
-							// DrawCircle(lpc2,scaleFactor/4,2);
-							// DrawPath(pthToSubtract,22);
-						// }
+						if(fabs(area-areaSum)/(area+areaSum)>0.1) {
+							cout<< "PolyArea:" << areaSum << " new area:" << area << endl;
+							 ClearScreenFn();
+							DrawPath(innerPathC2,10);
+							DrawPaths(cleared_paths,1);
+							DrawCircle(c1,toolRadiusScaled,0);
+							DrawCircle(c2,toolRadiusScaled,2);
+							DrawCircle(fpc2,scaleFactor/4,1);
+							DrawCircle(lpc2,scaleFactor/4,2);
+							DrawPath(pthToSubtract,22);
+						}
 				}
 				prevPtIndex = curPtIndex;
 				p1 = p2;
