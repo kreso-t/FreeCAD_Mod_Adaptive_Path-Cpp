@@ -129,7 +129,7 @@ clear()
 pygame.display.update()
 
 a2d.polyTreeNestingLimit = 0
-a2d.opType =  PathAdaptiveCore.OperationType.ProfilingInside;
+a2d.opType =  PathAdaptiveCore.OperationType.Clearing;
 result=a2d.Execute(paths,feecback)
 
 for output in result:

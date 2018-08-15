@@ -798,7 +798,7 @@ namespace AdaptivePath {
 		helixRampRadiusScaled=helixRampDiameter*scaleFactor/2;
 		finishPassOffsetScaled=tolerance*scaleFactor/2;
 
-		cout<< "toolRadiusScaled:" << toolRadiusScaled << " helixRampRadiusScaled:" << helixRampRadiusScaled << endl;
+		//cout<< "toolRadiusScaled:" << toolRadiusScaled << " helixRampRadiusScaled:" << helixRampRadiusScaled << endl;
 		ClipperOffset clipof;
 		Clipper clip;
 
@@ -839,18 +839,6 @@ namespace AdaptivePath {
 		// *******************************
 		//	Resolve hierarchy and run processing
 		// ********************************
-
-		// if(opType==OperationType::otProfilingOutside) {
-		// 	clipof.Clear();
-		// 	clipof.AddPaths(inputPaths,JoinType::jtSquare,EndType::etClosedPolygon);
-		// 	Paths off1;
-		// 	clipof.Execute(off1,2*(helixRampRadiusScaled+toolRadiusScaled));
-
-		// 	clip.Clear();
-		// 	clip.AddPaths(off1,PolyType::ptSubject,true);
-		// 	clip.AddPaths(inputPaths,PolyType::ptClip,true);
-		// 	clip.Execute(ClipType::ctDifference,inputPaths,PolyFillType::pftEvenOdd);
-		// }
 
 		if(opType==OperationType::otClearing) {
 				clipof.Clear();
@@ -937,13 +925,6 @@ namespace AdaptivePath {
 										clipof.Execute(toolBoundPaths,-toolRadiusScaled-finishPassOffsetScaled);
 										ProcessPolyNode(boundPaths,toolBoundPaths);
 							}
-							// // calc bounding paths - i.e. area that must be cleared inside
-							// // it's not the same as input paths due to filtering (nesting logic)
-							// Paths boundPaths;
-							// clipof.Clear();
-							// clipof.AddPaths(toolBoundPaths,JoinType::jtRound,EndType::etClosedPolygon);
-							// clipof.Execute(boundPaths,toolRadiusScaled+finishPassOffsetScaled);
-							// ProcessPolyNode(boundPaths,toolBoundPaths);
 						}
 					}
 					current = current->GetNext();
@@ -1006,7 +987,7 @@ namespace AdaptivePath {
 				Paths crossing;
 				clip.Execute(ClipType::ctDifference,crossing);
 				if(crossing.size()>0) {
-					cerr<<"Helix does not fit to the cutting area"<<endl;
+					//cerr<<"Helix does not fit to the cutting area"<<endl;
 					found=false;
 				}
 			}
@@ -1166,7 +1147,6 @@ namespace AdaptivePath {
 		vector<double> angleHistory; // use to predict deflection angle
 		double angle = M_PI;
 		engagePoint = toolPos;
-		Path boundBox;
 		Interpolation interp; // interpolation instance
 		EngagePoint engage(toolBoundPaths); // engage point stepping instance
 
@@ -1303,8 +1283,8 @@ namespace AdaptivePath {
 				if(firstEngagePoint) { // initial spiral shape need clearing in smaller intervals
 					double distFromEntry = sqrt(DistanceSqrd(toolPos,entryPoint));
 					double circ = distFromEntry * M_PI;
-
-					//if(toClearPath.size()>circ/(80*RESOLUTION_FACTOR)) {
+					//cout << (circ/(16*RESOLUTION_FACTOR)) << endl;
+					if(toClearPath.size()>circ/(16*RESOLUTION_FACTOR)) {
 						Perf_ExpandCleared.Start();
 						// expand cleared
 						clipof.Clear();
@@ -1318,7 +1298,7 @@ namespace AdaptivePath {
 						CleanPolygons(cleared);
 						toClearPath.clear();
 						Perf_ExpandCleared.Stop();
-					//}
+					}
 				}
 
 				if(area>0) { // cut is ok - record it
