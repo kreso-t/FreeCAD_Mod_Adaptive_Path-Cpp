@@ -41,7 +41,7 @@ PYBIND11_MODULE(PathAdaptiveCore, m) {
 
 	py::class_<Adaptive2d> Adaptive2d(m, "Adaptive2d");
 		Adaptive2d.def(py::init<>());
-		Adaptive2d.def("Execute",&Adaptive2d::Execute,py::return_value_policy::automatic_reference) ;
+		Adaptive2d.def("Execute",&Adaptive2d::Execute) ;
 
 	 	Adaptive2d.def_readwrite("stepOverFactor", &Adaptive2d::stepOverFactor);
 	 	Adaptive2d.def_readwrite("toolDiameter", &Adaptive2d::toolDiameter);
