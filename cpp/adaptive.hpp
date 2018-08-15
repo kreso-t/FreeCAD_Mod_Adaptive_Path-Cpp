@@ -82,7 +82,7 @@ namespace AdaptivePath {
 			bool  CheckCollision(const IntPoint &lastPoint,const IntPoint &nextPoint,const Paths & cleared);
 			friend class EngagePoint; // for CalcCutArea
 
-			void CheckReportProgress(TPaths &progressPaths);
+			void CheckReportProgress(TPaths &progressPaths,bool force=false);
 
 			//debugging
 			void DrawCircle(const IntPoint &  cp, double radiusScaled, int color ) {
@@ -112,8 +112,7 @@ namespace AdaptivePath {
 			const double RESOLUTION_FACTOR = 8.0;
 			const double MIN_CUT_AREA_FACTOR = 0.05; // filter cuts that with cumulative area below this threshold
 			const int MAX_ITERATIONS = 11;
-			//const double RESOLUTION_FACTOR = 8.0;
-			const double AREA_ERROR_FACTOR = 20; /* how precise to match the cut area to optimal */
+			const double AREA_ERROR_FACTOR = 30; /* how precise to match the cut area to optimal */
 			const int ANGLE_HISTORY_POINTS=10;
 			const double ENGAGE_AREA_THR_FACTOR=0.1; // influences minimal engage area (factor relation to optimal)
 			const double ENGAGE_SCAN_DISTANCE_FACTOR=0.5; // influences the engage scan/stepping distance

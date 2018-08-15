@@ -44,7 +44,7 @@ class TaskPanelOpPage(PathOpGui.TaskPanelPage):
 
 
         form.StepOver = QtGui.QSpinBox()
-        form.StepOver.setMinimum(5)
+        form.StepOver.setMinimum(10)
         form.StepOver.setMaximum(50)
         form.StepOver.setSingleStep(1)
         form.StepOver.setValue(20)

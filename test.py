@@ -105,7 +105,7 @@ def drawPathFn(path, color):
 
 a2d = PathAdaptiveCore.Adaptive2d()
 a2d.stepOverFactor=0.2
-a2d.tolerance = 0.2
+a2d.tolerance = 0.1
 
 # a2d.DrawCircleFn = drawCircle
 # a2d.ClearScreenFn = clear
@@ -128,25 +128,34 @@ clear()
 pygame.display.update()
 
 a2d.polyTreeNestingLimit = 0
-a2d.opType =  PathAdaptiveCore.OperationType.Clearing;
+a2d.opType =  PathAdaptiveCore.OperationType.ProfilingInside;
 result=a2d.Execute(paths,feecback)
 
-
-
 for output in result:
-    i=0
-    print result
     for pth in output.AdaptivePaths:
-        print pth,output.AdaptivePaths[i]#, len(pth.Points), pth.MType, len(output.AdaptivePaths[i].Points),output.AdaptivePaths[i].MType
-        i=i+1
-        if i>5: break
-for output in result:
-    i=0
-    print result
-    for pth in output.AdaptivePaths:
-        print pth,output.AdaptivePaths[i]#, len(pth.Points), pth.MType, len(output.AdaptivePaths[i].Points),output.AdaptivePaths[i].MType
-        i=i+1
-        if i>5: break
+       if pth[0] == PathAdaptiveCore.MotionType.Cutting:
+            drawPath(pth[1],3)
+       elif pth[0] == PathAdaptiveCore.MotionType.LinkClear:
+            drawPath(pth[1],2)
+       elif pth[0] == PathAdaptiveCore.MotionType.LinkNotClear:
+            drawPath(pth[1],1)
+       elif pth[0] == PathAdaptiveCore.MotionType.LinkClearAtPrevPass:
+            drawPath(pth[1],4)
+
+# for output in result:
+#     i=0
+#     print result
+#     for pth in output.AdaptivePaths:
+#         print pth,output.AdaptivePaths[i]#, len(pth.Points), pth.MType, len(output.AdaptivePaths[i].Points),output.AdaptivePaths[i].MType
+#         i=i+1
+#         if i>5: break
+# for output in result:
+#     i=0
+#     print result
+#     for pth in output.AdaptivePaths:
+#         print pth,output.AdaptivePaths[i]#, len(pth.Points), pth.MType, len(output.AdaptivePaths[i].Points),output.AdaptivePaths[i].MType
+#         i=i+1
+#         if i>5: break
 
 pygame.display.update()
 #print result[0].HelixCenterPoint

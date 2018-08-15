@@ -622,7 +622,8 @@ namespace AdaptivePath {
 					if(DistancePointToLineSegSquared(*p1,*p2,c2, clp)<=rsqrd) {  // current segment inside, start
 						prev_inside=true;
 						innerPathC2.clear();
-						// current segment inside c2, prev point outside, find intersection:							
+						innerPathC2.reserve(200);
+						// current segment inside c2, prev point outside, find intersection:
 						if(Line2CircleIntersect(c2,toolRadiusScaled,*p1,*p2,inters)) {
 							innerPathC2.push_back(IntPoint(inters[0].X,inters[0].Y));
 							if(inters.size()>1) {
@@ -677,6 +678,7 @@ namespace AdaptivePath {
 
 						//cout << side << endl;
 						Paths inPaths;
+						inPaths.reserve(200);
 						inPaths.push_back(innerPathC2);
 						// DrawPath(innerPathC2,10);
 						// DrawCircle(fpc2,scaleFactor/4,1);
@@ -783,7 +785,7 @@ namespace AdaptivePath {
 		//**********************************
 		// Initializations
 		// **********************************
-		scaleFactor = RESOLUTION_FACTOR/tolerance;
+		scaleFactor = 0.7*RESOLUTION_FACTOR/tolerance;
 		toolRadiusScaled = toolDiameter*scaleFactor/2;
 		bbox_size =toolDiameter*scaleFactor;
 		progressCallback = &progressCallbackFn;
@@ -1056,7 +1058,7 @@ namespace AdaptivePath {
 	}
 
 	void Adaptive2d::AppendToolPath(AdaptiveOutput & output,const Path & passToolPath,const Paths & cleared, bool close) {
-		if(passToolPath.size()<1) return;		
+		if(passToolPath.size()<1) return;
 		IntPoint nextPoint(passToolPath[0]);
 
 		if(output.AdaptivePaths.size()>0 && output.AdaptivePaths.back().second.size()>0) { // if there is a previous path
@@ -1093,14 +1095,14 @@ namespace AdaptivePath {
 		if(cutPath.second.size()>0) output.AdaptivePaths.push_back(cutPath);
 	}
 
-	void Adaptive2d::CheckReportProgress(TPaths &progressPaths) {
-		if(clock()-lastProgressTime<PROGRESS_TICKS) return; // not yet
+	void Adaptive2d::CheckReportProgress(TPaths &progressPaths, bool force) {
+		if(!force && (clock()-lastProgressTime<PROGRESS_TICKS)) return; // not yet
 		lastProgressTime=clock();
 		if(progressPaths.size()==0) return;
-		if(progressPaths.back().second.size()==0) return;
 		if(progressCallback)
 			if((*progressCallback)(progressPaths)) stopProcessing=true; // call python function, if returns true signal stop processing
 		// clean the paths - keep the last point
+		if(progressPaths.back().second.size()==0) return;
 		TPath * lastPath = &progressPaths.back();
 		DPoint *lastPoint =&lastPath->second.back();
 		DPoint next(lastPoint->first,lastPoint->second);
@@ -1114,6 +1116,8 @@ namespace AdaptivePath {
 
 		IntPoint entryPoint;
 		TPaths progressPaths;
+		progressPaths.reserve(10000);
+
 		SimplifyPolygons(toolBoundPaths);
 		CleanPolygons(toolBoundPaths);
 		SimplifyPolygons(boundPaths);
@@ -1137,6 +1141,19 @@ namespace AdaptivePath {
 		IntPoint newToolPos;
 		DoublePoint newToolDir;
 
+		// visualize/progess for helix
+		clipof.Clear();
+		Path hp;
+		hp << entryPoint;
+		clipof.AddPath(hp,JoinType::jtRound,EndType::etOpenRound);
+		Paths hps;
+		clipof.Execute(hps,helixRampRadiusScaled);
+			progressPaths.push_back(TPath());
+
+		// show in progress cb
+		for(auto & pt:hps[0]) {
+			progressPaths.back().second.push_back(DPoint(double(pt.X)/scaleFactor,double(pt.Y)/scaleFactor));
+		}
 
 		// find the first tool position and direction
 		toolPos = IntPoint(entryPoint.X,entryPoint.Y - helixRampRadiusScaled);
@@ -1349,7 +1366,7 @@ namespace AdaptivePath {
 				CleanPath(passToolPath,cleaned,CLEAN_PATH_TOLERANCE);
 				total_output_points+=cleaned.size();
 				AppendToolPath(output,cleaned,cleared);
-				CheckReportProgress(progressPaths);	
+				CheckReportProgress(progressPaths);
 			}
 			/*****NEXT ENGAGE POINT******/
 			if(firstEngagePoint) {
@@ -1358,12 +1375,11 @@ namespace AdaptivePath {
 			} else {
 				double moveDistance = ENGAGE_SCAN_DISTANCE_FACTOR * stepOverFactor * toolRadiusScaled+1;
 				if(!engage.nextEngagePoint(this, cleared,moveDistance,ENGAGE_AREA_THR_FACTOR*optimalCutAreaPD*moveDistance, 
-					2*optimalCutAreaPD*moveDistance)) break;
+					0.5*referenceCutArea*moveDistance)) break;
 			}
 			toolPos = engage.getCurrentPoint();
 			toolDir = engage.getCurrentDir();
 		}
-
 		/**********************************/
 		/*  FINISHING PASS                */
 		/**********************************/
@@ -1372,7 +1388,13 @@ namespace AdaptivePath {
 		Paths finishingPaths;
 		clipof.Execute(finishingPaths,-toolRadiusScaled);
 		IntPoint lastPoint;
+
 		for(auto & pth: finishingPaths) {
+			progressPaths.push_back(TPath());
+			// show in progress cb
+			for(auto & pt:pth) {
+				progressPaths.back().second.push_back(DPoint(double(pt.X)/scaleFactor,double(pt.Y)/scaleFactor));
+			}
 			Path cleaned;
 			CleanPath(pth,cleaned,FINISHING_CLEAN_PATH_TOLERANCE);
 			AppendToolPath(output,cleaned,cleared,true);
@@ -1394,7 +1416,7 @@ namespace AdaptivePath {
 		Perf_ExpandCleared.DumpResults();
 		Perf_DistanceToBoundary.DumpResults();
 		#endif
-		CheckReportProgress(progressPaths);
+		CheckReportProgress(progressPaths, true);
 		double duration=((double)(clock()-start_clock))/CLOCKS_PER_SEC;
 		cout<<"PolyNode perf:"<< perf_total_len/double(scaleFactor)/duration << " mm/sec"
 			<< " processed_points:" << total_points
