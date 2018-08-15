@@ -2,7 +2,7 @@ import FreeCAD
 import FreeCADGui
 import AdaptivePathCpp
 import AdaptivePathGuiCpp
-import Adaptive_rc
+import Adaptive2_rc
 print("Loading adaptive PATH++")
 
 def SetupOperation(name,
@@ -21,7 +21,7 @@ def SetupOperation(name,
     It is not expected to be called manually.
     '''
 
-    import Adaptive_rc
+    import Adaptive2_rc
     import PathScripts.PathOpGui as PathOpGui
     res = PathOpGui.CommandResources(resName, objFactory, opPageClass, pixmap, menuText, accelKey, toolTip)
 
@@ -35,6 +35,6 @@ Command = SetupOperation(
         'Pocket Shape',
         AdaptivePathCpp.Create,
         AdaptivePathGuiCpp.TaskPanelOpPage,
-        ':/Path-Adaptive.svg',
+        ':/Path-Adaptive2.svg',
         "Adaptive 2.5D++",
         "Creates a adaptive path from a face or faces (c++ version)")

@@ -12,7 +12,7 @@ class TaskPanelOpPage(PathOpGui.TaskPanelPage):
 
     def getIcon(self, icon):
         '''getIcon(icon) ... return icon for page or None.'''
-        return ":/Path-Adaptive.svg"
+        return ":/Path-Adaptive2.svg"
 
     def getForm(self):
         form = QtGui.QWidget()
@@ -98,9 +98,7 @@ class TaskPanelOpPage(PathOpGui.TaskPanelPage):
         form.StopButton=QtGui.QPushButton("Stop")
         form.StopButton.setCheckable(True)
         layout.addWidget(form.StopButton)
-        #button
-        # form.button = QtGui.QPushButton("Update")
-        # layout.addWidget(form.button)
+
 
         form.setLayout(layout)
         return form

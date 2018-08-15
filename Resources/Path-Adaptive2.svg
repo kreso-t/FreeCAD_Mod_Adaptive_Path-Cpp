@@ -14,7 +14,7 @@
    height="64px"
    id="svg2816"
    version="1.1"
-   inkscape:version="0.92.3 (2405546, 2018-03-11)"
+   inkscape:version="0.91 r13725"
    sodipodi:docname="Path-Adaptive.svg">
   <defs
      id="defs2818">
@@ -641,8 +641,8 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="11.313709"
-     inkscape:cx="26.038436"
-     inkscape:cy="33.913967"
+     inkscape:cx="11.145"
+     inkscape:cy="33.73719"
      inkscape:current-layer="layer1"
      showgrid="true"
      inkscape:document-units="px"
@@ -655,9 +655,9 @@
      inkscape:object-paths="true"
      inkscape:object-nodes="true"
      inkscape:window-width="1920"
-     inkscape:window-height="1001"
-     inkscape:window-x="-9"
-     inkscape:window-y="-9"
+     inkscape:window-height="1013"
+     inkscape:window-x="0"
+     inkscape:window-y="1050"
      inkscape:window-maximized="1"
      inkscape:snap-global="true">
     <inkscape:grid
@@ -817,15 +817,16 @@
     </g>
     <text
        xml:space="preserve"
-       style="font-style:normal;font-weight:normal;font-size:36.36278915px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#f1ffff;fill-opacity:1;stroke:#00802f;stroke-width:0.52913385;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       style="font-style:normal;font-weight:normal;font-size:36.36249983px;line-height:125%;font-family:'Bitstream Vera Sans';letter-spacing:0px;word-spacing:0px;fill:#d40000;fill-opacity:1;stroke:#00802f;stroke-width:0.52913385;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;-inkscape-font-specification:'Bitstream Vera Sans, Normal';font-stretch:normal;font-variant:normal;text-anchor:start;text-align:start;writing-mode:lr;"
        x="3.394881"
        y="35.439285"
        id="text942"
-       transform="scale(1.0564276,0.94658642)"><tspan
+       transform="scale(1.0564276,0.94658642)"
+       sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
          id="tspan940"
          x="3.394881"
          y="35.439285"
-         style="fill:#f1ffff;fill-opacity:1;stroke:#00802f;stroke-width:0.52913385;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1">A</tspan></text>
+         style="fill:#d40000;fill-opacity:1;stroke:#00802f;stroke-width:0.52913385;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;-inkscape-font-specification:'Bitstream Vera Sans, Normal';font-family:'Bitstream Vera Sans';font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;font-size:36.36249983px;text-anchor:start;text-align:start;writing-mode:lr;line-height:125%;">A</tspan></text>
   </g>
 </svg>

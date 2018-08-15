@@ -47,7 +47,9 @@ def GenerateGCode(op,obj,adaptiveResults, helixDiameter):
       return
 
     minLiftDistance = op.tool.Diameter
-    helixRadius = helixDiameter/2.0
+    p1 =  adaptiveResults[0].HelixCenterPoint
+    p2 =  adaptiveResults[0].StartPoint
+    helixRadius =math.sqrt((p1[0]-p2[0]) * (p1[0]-p2[0]) +  (p1[1]-p2[1]) * (p1[1]-p2[1]))
     stepDown = obj.StepDown.Value
     passStartDepth=obj.StartDepth.Value
     if stepDown<0.1 : stepDown=0.1

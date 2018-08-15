@@ -785,22 +785,20 @@ namespace AdaptivePath {
 		//**********************************
 		// Initializations
 		// **********************************
-		scaleFactor = 0.7*RESOLUTION_FACTOR/tolerance;
+		scaleFactor = 0.5*RESOLUTION_FACTOR/tolerance;
 		toolRadiusScaled = toolDiameter*scaleFactor/2;
 		bbox_size =toolDiameter*scaleFactor;
 		progressCallback = &progressCallbackFn;
 		lastProgressTime=clock();
 		stopProcessing=false;
 
-		if(helixRampDiameter<=1e-9 || helixRampDiameter>toolDiameter ) {
-			helixRampRadiusScaled=toolRadiusScaled;
-		} else  {
-			helixRampRadiusScaled=helixRampDiameter*scaleFactor/2;
-		}
+		if(helixRampDiameter>toolDiameter) helixRampDiameter = toolDiameter;
+		if(helixRampDiameter<toolDiameter/2) helixRampDiameter = toolDiameter/2;
 
+		helixRampRadiusScaled=helixRampDiameter*scaleFactor/2;
 		finishPassOffsetScaled=tolerance*scaleFactor/2;
 
-		//cout<< "toolRadiusScaled:" << toolRadiusScaled << endl;
+		cout<< "toolRadiusScaled:" << toolRadiusScaled << " helixRampRadiusScaled:" << helixRampRadiusScaled << endl;
 		ClipperOffset clipof;
 		Clipper clip;
 
@@ -822,7 +820,7 @@ namespace AdaptivePath {
 		clip.Execute(ClipType::ctDifference,crossing);
 		referenceCutArea = fabs(Area(crossing[0]));
 		optimalCutAreaPD =2 * stepOverFactor * referenceCutArea/toolRadiusScaled;
-		minCutAreaPD = optimalCutAreaPD/2 +1; // influences decreasing of cut area near boundary, i.e. avoiding boundary
+		minCutAreaPD = optimalCutAreaPD/3 +1; // influences decreasing of cut area near boundary, i.e. avoiding boundary
 
 		// **********************
 		// Convert input paths to clipper
@@ -1216,7 +1214,7 @@ namespace AdaptivePath {
 				double distanceToBoundary = sqrt(DistancePointToPathsSqrd(toolBoundPaths, toolPos, clp));
 				Perf_DistanceToBoundary.Stop();
 				double distanceToEngage = sqrt(DistanceSqrd(toolPos,engagePoint));
-				double relDistToBoundary = 2.0 * distanceToBoundary/toolRadiusScaled;
+				double relDistToBoundary = 4.0 * distanceToBoundary/toolRadiusScaled;
 
 				double targetAreaPD=optimalCutAreaPD;
 
@@ -1228,10 +1226,11 @@ namespace AdaptivePath {
 				} else {
 					stepScaled = RESOLUTION_FACTOR*4 ;
 				}
-				// 	// modify/slightly decrease target cut area at the end of cut
-				// if(relDistToBoundary<1.0 && distanceToEngage>toolRadiusScaled) {
-				// 	targetAreaPD = relDistToBoundary*(optimalCutAreaPD-minCutAreaPD) + minCutAreaPD;
-				// }
+
+				// modify/slightly decrease target cut area at the end of cut
+				if(relDistToBoundary<1.0 && distanceToEngage>toolRadiusScaled) {
+					targetAreaPD = relDistToBoundary*(optimalCutAreaPD-minCutAreaPD) + minCutAreaPD;
+				}
 
 				// clamp the step size - for stability
 
@@ -1302,7 +1301,10 @@ namespace AdaptivePath {
 				if(toClearPath.size()==0) toClearPath.push_back(toolPos);
 				toClearPath.push_back(newToolPos);
 				if(firstEngagePoint) { // initial spiral shape need clearing in smaller intervals
-					if(toClearPath.size()>10) {
+					double distFromEntry = sqrt(DistanceSqrd(toolPos,entryPoint));
+					double circ = distFromEntry * M_PI;
+
+					//if(toClearPath.size()>circ/(80*RESOLUTION_FACTOR)) {
 						Perf_ExpandCleared.Start();
 						// expand cleared
 						clipof.Clear();
@@ -1316,7 +1318,7 @@ namespace AdaptivePath {
 						CleanPolygons(cleared);
 						toClearPath.clear();
 						Perf_ExpandCleared.Stop();
-					}
+					//}
 				}
 
 				if(area>0) { // cut is ok - record it
@@ -1375,7 +1377,7 @@ namespace AdaptivePath {
 			} else {
 				double moveDistance = ENGAGE_SCAN_DISTANCE_FACTOR * stepOverFactor * toolRadiusScaled+1;
 				if(!engage.nextEngagePoint(this, cleared,moveDistance,ENGAGE_AREA_THR_FACTOR*optimalCutAreaPD*moveDistance, 
-					0.5*referenceCutArea*moveDistance)) break;
+					2*stepOverFactor*referenceCutArea*moveDistance)) break;
 			}
 			toolPos = engage.getCurrentPoint();
 			toolDir = engage.getCurrentDir();
