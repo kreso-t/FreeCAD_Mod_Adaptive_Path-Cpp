@@ -452,7 +452,7 @@ namespace AdaptivePath {
 				if(!moveForward(step))	 {
 					if(!nextPath()) {
 						passes++;
-						if(passes>1) {
+						if(passes>2) {
 							Perf_NextEngagePoint.Stop();
 							return false; // nothin more to cut
 						}
@@ -788,6 +788,7 @@ namespace AdaptivePath {
 		bbox_size =toolDiameter*scaleFactor;
 		progressCallback = &progressCallbackFn;
 		lastProgressTime=clock();
+		stopProcessing=false;
 
 		if(helixRampDiameter<=1e-9 || helixRampDiameter>toolDiameter ) {
 			helixRampRadiusScaled=toolRadiusScaled;
@@ -819,7 +820,7 @@ namespace AdaptivePath {
 		clip.Execute(ClipType::ctDifference,crossing);
 		referenceCutArea = fabs(Area(crossing[0]));
 		optimalCutAreaPD =2 * stepOverFactor * referenceCutArea/toolRadiusScaled;
-		minCutAreaPD = optimalCutAreaPD/3 +1; // influences decreasing of cut area near boundary, i.e. avoiding boundary
+		minCutAreaPD = optimalCutAreaPD/2 +1; // influences decreasing of cut area near boundary, i.e. avoiding boundary
 
 		// **********************
 		// Convert input paths to clipper
@@ -1057,53 +1058,55 @@ namespace AdaptivePath {
 	void Adaptive2d::AppendToolPath(AdaptiveOutput & output,const Path & passToolPath,const Paths & cleared, bool close) {
 		if(passToolPath.size()<1) return;		
 		IntPoint nextPoint(passToolPath[0]);
-		if(output.AdaptivePaths.size()>0 && output.AdaptivePaths[output.AdaptivePaths.size()-1].Points.size()>0) { // if there is a previous path
-			auto & lastTPath = output.AdaptivePaths[output.AdaptivePaths.size()-1];
-			auto & lastTPoint = lastTPath.Points[lastTPath.Points.size()-1];			
+
+		if(output.AdaptivePaths.size()>0 && output.AdaptivePaths.back().second.size()>0) { // if there is a previous path
+			auto & lastTPath = output.AdaptivePaths.back();
+			auto & lastTPoint = lastTPath.second.back();
 			IntPoint lastPoint(lastTPoint.first*scaleFactor,lastTPoint.second*scaleFactor);
 			bool clear = CheckCollision(lastPoint,nextPoint,cleared);
 			// add linking move
 			TPath linkPath;
-			linkPath.MType = clear ? MotionType::mtLinkClear : MotionType::mtLinkNotClear;
+			linkPath.first = clear ? MotionType::mtLinkClear : MotionType::mtLinkNotClear;
 			DPoint nextT;
 			nextT.first = double(nextPoint.X)/scaleFactor;
 			nextT.second = double(nextPoint.Y)/scaleFactor;
-			linkPath.Points.push_back(lastTPoint);
-			linkPath.Points.push_back(nextT);
+			linkPath.second.push_back(lastTPoint);
+			linkPath.second.push_back(nextT);
 			output.AdaptivePaths.push_back(linkPath);
 		// first we find the last point
 		}
 		TPath cutPath;
-		cutPath.MType =MotionType::mtCutting;
+		cutPath.first =MotionType::mtCutting;
 		for(const auto &p : passToolPath) {
 			DPoint nextT;
 			nextT.first = double(p.X)/scaleFactor;
 			nextT.second = double(p.Y)/scaleFactor;
-			cutPath.Points.push_back(nextT);
+			cutPath.second.push_back(nextT);
 		}
 
 		if(close) {
 			DPoint nextT;
 			nextT.first = double(passToolPath[0].X)/scaleFactor;
-			nextT.second = double(passToolPath[1].Y)/scaleFactor;
-			cutPath.Points.push_back(nextT);
+			nextT.second = double(passToolPath[0].Y)/scaleFactor;
+			cutPath.second.push_back(nextT);
 		}
-		output.AdaptivePaths.push_back(cutPath);
+		if(cutPath.second.size()>0) output.AdaptivePaths.push_back(cutPath);
 	}
 
 	void Adaptive2d::CheckReportProgress(TPaths &progressPaths) {
 		if(clock()-lastProgressTime<PROGRESS_TICKS) return; // not yet
 		lastProgressTime=clock();
 		if(progressPaths.size()==0) return;
-		if(progressPaths[progressPaths.size()-1].Points.size()==0) return;
-		if(progressCallback) (*progressCallback)(progressPaths); // call python function
+		if(progressPaths.back().second.size()==0) return;
+		if(progressCallback)
+			if((*progressCallback)(progressPaths)) stopProcessing=true; // call python function, if returns true signal stop processing
 		// clean the paths - keep the last point
-		TPath * lastPath = &progressPaths[progressPaths.size()-1];
-		DPoint *lastPoint =&lastPath->Points[lastPath->Points.size()-1];
+		TPath * lastPath = &progressPaths.back();
+		DPoint *lastPoint =&lastPath->second.back();
 		DPoint next(lastPoint->first,lastPoint->second);
 		while(progressPaths.size()>1) progressPaths.pop_back();
-		while(progressPaths[0].Points.size()>0) progressPaths[0].Points.pop_back();
-		progressPaths[0].Points.push_back(next);
+		while(progressPaths.front().second.size()>0) progressPaths.front().second.pop_back();
+		progressPaths.front().second.push_back(next);
 	}
 	void Adaptive2d::ProcessPolyNode(Paths & boundPaths, Paths & toolBoundPaths) {
 		Perf_ProcessPolyNode.Start();
@@ -1118,7 +1121,7 @@ namespace AdaptivePath {
 
 		Paths cleared;
 		if(!FindEntryPoint(toolBoundPaths, boundPaths, cleared, entryPoint)) return;
-		cout << "Entry point:" << entryPoint << endl;
+		//cout << "Entry point:" << entryPoint << endl;
 		Clipper clip;
 		ClipperOffset clipof;
 		AdaptiveOutput output;
@@ -1138,6 +1141,8 @@ namespace AdaptivePath {
 		// find the first tool position and direction
 		toolPos = IntPoint(entryPoint.X,entryPoint.Y - helixRampRadiusScaled);
 		toolDir = DoublePoint(1.0,0.0);
+		output.StartPoint =DPoint(double(toolPos.X)/scaleFactor,double(toolPos.Y)/scaleFactor);
+
 		bool firstEngagePoint=true;
 		Path passToolPath; // to store pass toolpath
 		Path toClearPath; // to clear toolpath
@@ -1161,6 +1166,7 @@ namespace AdaptivePath {
 		 * LOOP - PASSES
 		 *******************************/
 		for(long pass=0;pass<PASSES_LIMIT;pass++) {
+			if(stopProcessing) break;
 			//cout<<"Pass:"<< pass << endl;
 			passToolPath.clear();
 			toClearPath.clear();
@@ -1171,7 +1177,7 @@ namespace AdaptivePath {
 				progressPaths.push_back(TPath());
 			} else {
 				// append new path if previous not empty
-				if(progressPaths[progressPaths.size()-1].Points.size()>0)
+				if(progressPaths.back().second.size()>0)
 						progressPaths.push_back(TPath());
 			}
 
@@ -1185,6 +1191,7 @@ namespace AdaptivePath {
 			 * LOOP - POINTS
 			 *******************************/
 			for(long point_index=0;point_index<POINTS_PER_PASS_LIMIT;point_index++) {
+				if(stopProcessing) break;
 				//cout<<"Pass:"<< pass << " Point:" << point_index;
 				total_points++;
 				AverageDirection(gyro, toolDir);
@@ -1195,21 +1202,25 @@ namespace AdaptivePath {
 				double relDistToBoundary = 2.0 * distanceToBoundary/toolRadiusScaled;
 
 				double targetAreaPD=optimalCutAreaPD;
-				// modify/slightly decrease target cut area at the end of cut
-				if(relDistToBoundary<1.0 && distanceToEngage>toolRadiusScaled) {
-					targetAreaPD = relDistToBoundary*(optimalCutAreaPD-minCutAreaPD) + minCutAreaPD;
-				}
+
 				// set the step size
-				if(distanceToBoundary<toolRadiusScaled || distanceToEngage<toolRadiusScaled) {
+				if(distanceToBoundary<2*toolRadiusScaled || distanceToEngage<2*toolRadiusScaled) {
 					stepScaled = RESOLUTION_FACTOR*2;
 				} else if(fabs(angle)>1e-5) {
 					stepScaled = RESOLUTION_FACTOR/fabs(angle);
 				} else {
 					stepScaled = RESOLUTION_FACTOR*4 ;
 				}
+				// 	// modify/slightly decrease target cut area at the end of cut
+				// if(relDistToBoundary<1.0 && distanceToEngage>toolRadiusScaled) {
+				// 	targetAreaPD = relDistToBoundary*(optimalCutAreaPD-minCutAreaPD) + minCutAreaPD;
+				// }
+
 				// clamp the step size - for stability
-				if(stepScaled<RESOLUTION_FACTOR*2) stepScaled=RESOLUTION_FACTOR*2;
-				else if(stepScaled>toolRadiusScaled/2) stepScaled=toolRadiusScaled/2;
+
+				if(stepScaled>min(double(toolRadiusScaled/4), double(RESOLUTION_FACTOR*8)))
+					stepScaled=min(double(toolRadiusScaled/4), double(RESOLUTION_FACTOR*8));
+				if(stepScaled<2*RESOLUTION_FACTOR) stepScaled=2*RESOLUTION_FACTOR;
 
 				/************************************
 				 * ANGLE vs AREA ITERATIONS
@@ -1304,7 +1315,7 @@ namespace AdaptivePath {
 					if(progressPaths.size()==0) {
 						progressPaths.push_back(TPath());
 					}
-					progressPaths[progressPaths.size()-1].Points.push_back(DPoint(double(newToolPos.X)/scaleFactor,double(newToolPos.Y)/scaleFactor));
+					progressPaths.back().second.push_back(DPoint(double(newToolPos.X)/scaleFactor,double(newToolPos.Y)/scaleFactor));
 
 					// apend gyro
 					gyro.push_back(newToolDir);
@@ -1374,7 +1385,7 @@ namespace AdaptivePath {
 		output.ReturnMotionType = CheckCollision(lastPoint, entryPoint,cleared) ? MotionType::mtLinkClear : MotionType::mtLinkNotClear;
 
 		// dump performance results
-		#ifdef DEBUG_VISUALIZATION
+		#ifdef DEV_MODE
 		Perf_ProcessPolyNode.Stop();
 		Perf_ProcessPolyNode.DumpResults();
 		Perf_PointIterations.DumpResults();

@@ -5,7 +5,7 @@
 #ifndef ADAPTIVE_HPP
 #define ADAPTIVE_HPP
 
-#define DEBUG_VISALIZATION
+//#define DEV_MODE
 
 #define NTOL 1.0e-7  // numeric tolerance
 
@@ -19,17 +19,20 @@ namespace AdaptivePath {
 	typedef std::pair<double,double> DPoint;
 	typedef std::vector<DPoint> DPath;
 	typedef std::vector<DPath> DPaths;
-	struct TPath {
-		DPath Points;
-		MotionType MType;
-	};
+	typedef std::pair<MotionType,DPath> TPath;
+
+	// struct TPath { #this does not work correctly with pybind for some reason, changed to pair
+	// 		DPath Points;
+	// 		MotionType MType;
+	// };
+
 	typedef std::vector<TPath> TPaths;
 
-	class AdaptiveOutput {
-		public:
-			DPoint HelixCenterPoint;
-			TPaths AdaptivePaths;
-			MotionType ReturnMotionType;
+	struct AdaptiveOutput {
+		DPoint HelixCenterPoint;
+		DPoint StartPoint;
+		TPaths AdaptivePaths;
+		MotionType ReturnMotionType;
 	};
 
 	// used to isolate state -> enable potential adding of multi-threaded processing of separate regions
@@ -46,7 +49,7 @@ namespace AdaptivePath {
 
 			std::list<AdaptiveOutput> Execute(const DPaths &paths, std::function<bool(TPaths)> progressCallbackFn);
 
-			#ifdef DEBUG_VISALIZATION
+			#ifdef DEV_MODE
 			/*for debugging*/
 			std::function<void(double cx,double cy, double radius, int color)> DrawCircleFn;
 			std::function<void(const DPath &, int color)> DrawPathFn;
@@ -65,6 +68,7 @@ namespace AdaptivePath {
 			double referenceCutArea=0;
 			double optimalCutAreaPD=0;
 			double minCutAreaPD=0;
+			bool stopProcessing=false;
 
 			time_t lastProgressTime = 0;
 			
@@ -82,12 +86,12 @@ namespace AdaptivePath {
 
 			//debugging
 			void DrawCircle(const IntPoint &  cp, double radiusScaled, int color ) {
-				#ifdef DEBUG_VISALIZATION
+				#ifdef DEV_MODE
 					DrawCircleFn(1.0*cp.X/ scaleFactor, 1.0 *cp.Y/scaleFactor, radiusScaled/scaleFactor,color);
 				#endif
 			}
 			void DrawPath(const Path & path, int color ) {
-				#ifdef DEBUG_VISALIZATION
+				#ifdef DEV_MODE
 				DPath dpath;
 				if(path.size()==0) return;
 				for(const IntPoint &pt : path) {
@@ -99,7 +103,7 @@ namespace AdaptivePath {
 			}
 
 			void DrawPaths(const Paths & paths, int color ) {
-				#ifdef DEBUG_VISALIZATION
+				#ifdef DEV_MODE
 				for(const Path &p : paths) DrawPath(p,color);
 				#endif
 			}
@@ -107,15 +111,15 @@ namespace AdaptivePath {
 		private: // constants for fine tuning
 			const double RESOLUTION_FACTOR = 8.0;
 			const double MIN_CUT_AREA_FACTOR = 0.05; // filter cuts that with cumulative area below this threshold
-			const int MAX_ITERATIONS = 9;
+			const int MAX_ITERATIONS = 11;
 			//const double RESOLUTION_FACTOR = 8.0;
-			const double AREA_ERROR_FACTOR = 40; /* how precise to match the cut area to optimal */
+			const double AREA_ERROR_FACTOR = 20; /* how precise to match the cut area to optimal */
 			const int ANGLE_HISTORY_POINTS=10;
 			const double ENGAGE_AREA_THR_FACTOR=0.1; // influences minimal engage area (factor relation to optimal)
 			const double ENGAGE_SCAN_DISTANCE_FACTOR=0.5; // influences the engage scan/stepping distance
 			const int DIRECTION_SMOOTHING_BUFLEN=5; // gyro points
-			const double CLEAN_PATH_TOLERANCE = 1.41;
-			const double FINISHING_CLEAN_PATH_TOLERANCE = 1.41/2;
+			const double CLEAN_PATH_TOLERANCE = 1;
+			const double FINISHING_CLEAN_PATH_TOLERANCE = 0.5;
 
 			const long PASSES_LIMIT = 10000000; // limit used for debugging
 			const long POINTS_PER_PASS_LIMIT = 100000000; // limit used for debugging

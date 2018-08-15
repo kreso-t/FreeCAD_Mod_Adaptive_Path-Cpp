@@ -36,9 +36,16 @@ class TaskPanelOpPage(PathOpGui.TaskPanelPage):
         form.side.setToolTip("Cut inside or outside of the selected face")
         formLayout.addRow(QtGui.QLabel("Cut Region"),form.side)
 
+        form.operationType = QtGui.QComboBox()
+        form.operationType.addItem("Clearing")
+        form.operationType.addItem("Profiling")
+        form.operationType.setToolTip("Type of adaptive operation")
+        formLayout.addRow(QtGui.QLabel("Operation Type"),form.operationType)
+
+
         form.StepOver = QtGui.QSpinBox()
-        form.StepOver.setMinimum(10)
-        form.StepOver.setMaximum(60)
+        form.StepOver.setMinimum(5)
+        form.StepOver.setMaximum(50)
         form.StepOver.setSingleStep(1)
         form.StepOver.setValue(20)
         form.StepOver.setToolTip("Tool step over percentage")
@@ -104,6 +111,7 @@ class TaskPanelOpPage(PathOpGui.TaskPanelPage):
         signals = []
         #signals.append(self.form.button.clicked)
         signals.append(self.form.side.currentIndexChanged)
+        signals.append(self.form.operationType.currentIndexChanged)
         signals.append(self.form.toolController.currentIndexChanged)
         signals.append(self.form.StepOver.valueChanged)
         signals.append(self.form.Tolerance.valueChanged)
@@ -116,6 +124,7 @@ class TaskPanelOpPage(PathOpGui.TaskPanelPage):
         return signals
     def setFields(self, obj):
         self.selectInComboBox(obj.Side, self.form.side)
+        self.selectInComboBox(obj.OperationType, self.form.operationType)
         self.form.StepOver.setValue(obj.StepOver)
         self.form.Tolerance.setValue(int(obj.Tolerance*100))
         self.form.HelixAngle.setValue(obj.HelixAngle)
@@ -137,6 +146,9 @@ class TaskPanelOpPage(PathOpGui.TaskPanelPage):
     def getFields(self, obj):
         if obj.Side != str(self.form.side.currentText()):
             obj.Side = str(self.form.side.currentText())
+
+        if obj.OperationType != str(self.form.operationType.currentText()):
+            obj.OperationType = str(self.form.operationType.currentText())
 
         obj.StepOver = self.form.StepOver.value()
         obj.Tolerance = 1.0*self.form.Tolerance.value()/100.0

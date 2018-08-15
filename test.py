@@ -57,7 +57,7 @@ def doEvents():
 def feecback(paths):
     global count
     for path in paths:
-        drawPath(path.Points,3)
+        drawPath(path[1],3)
         #print "feedback",dir(path)
     pygame.display.update()
     doEvents()
@@ -105,11 +105,11 @@ def drawPathFn(path, color):
 
 a2d = PathAdaptiveCore.Adaptive2d()
 a2d.stepOverFactor=0.2
-a2d.tolerance = 0.1
+a2d.tolerance = 0.2
 
-a2d.DrawCircleFn = drawCircle
-a2d.ClearScreenFn = clear
-a2d.DrawPathFn = drawPathFn
+# a2d.DrawCircleFn = drawCircle
+# a2d.ClearScreenFn = clear
+# a2d.DrawPathFn = drawPathFn
 
 a2d.toolDiameter = toolDia
 
@@ -128,26 +128,38 @@ clear()
 pygame.display.update()
 
 a2d.polyTreeNestingLimit = 0
-a2d.opType =  PathAdaptiveCore.OperationType.ProfilingOutside;
+a2d.opType =  PathAdaptiveCore.OperationType.Clearing;
 result=a2d.Execute(paths,feecback)
 
 
 
 for output in result:
+    i=0
+    print result
     for pth in output.AdaptivePaths:
-        if pth.MType == PathAdaptiveCore.MotionType.Cutting:
-            drawPath(pth.Points,3)
-        elif pth.MType == PathAdaptiveCore.MotionType.LinkClear:
-            drawPath(pth.Points,2)
-        elif pth.MType == PathAdaptiveCore.MotionType.LinkNotClear:
-            drawPath(pth.Points,1)
-        elif pth.MType == PathAdaptiveCore.MotionType.LinkClearAtPrevPass:
-            drawPath(pth.Points,4)
+        print pth,output.AdaptivePaths[i]#, len(pth.Points), pth.MType, len(output.AdaptivePaths[i].Points),output.AdaptivePaths[i].MType
+        i=i+1
+        if i>5: break
+for output in result:
+    i=0
+    print result
+    for pth in output.AdaptivePaths:
+        print pth,output.AdaptivePaths[i]#, len(pth.Points), pth.MType, len(output.AdaptivePaths[i].Points),output.AdaptivePaths[i].MType
+        i=i+1
+        if i>5: break
 
 pygame.display.update()
-print result[0].HelixCenterPoint
+#print result[0].HelixCenterPoint
 
 while True:
     doEvents()
 
 
+   # if pth.MType == PathAdaptiveCore.MotionType.Cutting:
+        #     drawPath(pth.Points,3)
+        # elif pth.MType == PathAdaptiveCore.MotionType.LinkClear:
+        #     drawPath(pth.Points,2)
+        # elif pth.MType == PathAdaptiveCore.MotionType.LinkNotClear:
+        #     drawPath(pth.Points,1)
+        # elif pth.MType == PathAdaptiveCore.MotionType.LinkClearAtPrevPass:
+        #     drawPath(pth.Points,4)

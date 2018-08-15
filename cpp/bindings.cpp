@@ -1,6 +1,8 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <pybind11/stl_bind.h>
 #include <pybind11/functional.h>
+#include <pybind11/operators.h>
 #include "adaptive.hpp"
 
 namespace py = pybind11;
@@ -11,6 +13,7 @@ using namespace AdaptivePath;
 
 PYBIND11_MODULE(PathAdaptiveCore, m) {
     m.doc() = "Adaptive toolpaths module";
+
 
 	py::enum_<MotionType> mt(m, "MotionType");
 	 mt.value("Cutting", MotionType::mtCutting);
@@ -26,35 +29,28 @@ PYBIND11_MODULE(PathAdaptiveCore, m) {
 
 	py::class_<AdaptiveOutput> AdaptiveOutput(m, "AdaptiveOutput");
 		AdaptiveOutput.def_readonly("HelixCenterPoint",&AdaptiveOutput::HelixCenterPoint);
+		AdaptiveOutput.def_readonly("StartPoint",&AdaptiveOutput::StartPoint);
 		AdaptiveOutput.def_readonly("AdaptivePaths",&AdaptiveOutput::AdaptivePaths);
 		AdaptiveOutput.def_readonly("ReturnMotionType",&AdaptiveOutput::ReturnMotionType);
 
-	py::class_<TPath> TPath(m, "TPath");
-	TPath.def_readonly("MType",&TPath::MType);
-	TPath.def_readonly("Points",&TPath::Points);
-	
-
-	// py::class_<ProgressInfo> ProgressInfo(m, "ProgressInfo");
-	// 	ProgressInfo.def_readonly("CurrentPath",&ProgressInfo::CurrentPath);
-	// 	ProgressInfo.def_readonly("EngageDir",&ProgressInfo::EngageDir);
-	// 	ProgressInfo.def_readonly("EngagePos",&ProgressInfo::EngagePos);
-	// 	ProgressInfo.def_readonly("PassCompleted",&ProgressInfo::PassCompleted);
-	// 	ProgressInfo.def_readonly("PassNo",&ProgressInfo::PassNo);
-	// 	ProgressInfo.def_readonly("ToolDir",&ProgressInfo::ToolDir);
-	// 	ProgressInfo.def_readonly("ToolPos",&ProgressInfo::ToolPos);
+	// this does not seem to work correctly, changed to std::pair:
+	// py::class_<TPath>(m, "TPath")
+	// 	.def_readonly("MType",&TPath::MType)
+	// 	.def_readonly("Points",&TPath::Points);
 
 
 	py::class_<Adaptive2d> Adaptive2d(m, "Adaptive2d");
 		Adaptive2d.def(py::init<>());
-		Adaptive2d.def("Execute",&Adaptive2d::Execute);
+		Adaptive2d.def("Execute",&Adaptive2d::Execute,py::return_value_policy::automatic_reference) ;
 
 	 	Adaptive2d.def_readwrite("stepOverFactor", &Adaptive2d::stepOverFactor);
 	 	Adaptive2d.def_readwrite("toolDiameter", &Adaptive2d::toolDiameter);
 		Adaptive2d.def_readwrite("helixRampDiameter", &Adaptive2d::helixRampDiameter);
 		Adaptive2d.def_readwrite("polyTreeNestingLimit", &Adaptive2d::polyTreeNestingLimit);
 		Adaptive2d.def_readwrite("tolerance", &Adaptive2d::tolerance);
-		Adaptive2d.def_readwrite("opType", &Adaptive2d::opType);		
-		#ifdef DEBUG_VISALIZATION
+		Adaptive2d.def_readwrite("opType", &Adaptive2d::opType);
+
+		#ifdef DEV_MODE
 		// debugging
 		Adaptive2d.def_readwrite("DrawCircleFn", &Adaptive2d::DrawCircleFn);
 		Adaptive2d.def_readwrite("ClearScreenFn", &Adaptive2d::ClearScreenFn);
