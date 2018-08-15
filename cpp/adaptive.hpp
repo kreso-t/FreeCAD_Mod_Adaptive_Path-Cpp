@@ -5,7 +5,7 @@
 #ifndef ADAPTIVE_HPP
 #define ADAPTIVE_HPP
 
-//#define DEBUG_VISALIZATION
+#define DEBUG_VISALIZATION
 
 #define NTOL 1.0e-7  // numeric tolerance
 
@@ -41,7 +41,6 @@ namespace AdaptivePath {
 			double helixRampDiameter=0;
 			double stepOverFactor = 0.2;
 			int polyTreeNestingLimit=0;
-			bool processHoles=true;
 			double tolerance=0.1;
 			OperationType opType = OperationType::otClearing;
 
@@ -72,8 +71,8 @@ namespace AdaptivePath {
 			std::function<bool(TPaths)> * progressCallback=NULL;
 			Path toolGeometry; // tool geometry at coord 0,0, should not be modified
 
-			void ProcessPolyNode(const Paths & boundPaths, const Paths & toolBoundPaths);
-			bool FindEntryPoint(const Paths & toolBoundPaths, IntPoint &entryPoint /*output*/);
+			void ProcessPolyNode(Paths & boundPaths, Paths & toolBoundPaths);
+			bool FindEntryPoint(const Paths & toolBoundPaths,const Paths &bound, Paths &cleared /*output*/, IntPoint &entryPoint /*output*/);
 			double CalcCutArea(Clipper & clip,const IntPoint &toolPos, const IntPoint &newToolPos, const Paths &cleared_paths);
 			void AppendToolPath(AdaptiveOutput & output,const Path & passToolPath,const Paths & cleared, bool close=false);
 			bool  CheckCollision(const IntPoint &lastPoint,const IntPoint &nextPoint,const Paths & cleared);

@@ -53,8 +53,7 @@ PYBIND11_MODULE(PathAdaptiveCore, m) {
 		Adaptive2d.def_readwrite("helixRampDiameter", &Adaptive2d::helixRampDiameter);
 		Adaptive2d.def_readwrite("polyTreeNestingLimit", &Adaptive2d::polyTreeNestingLimit);
 		Adaptive2d.def_readwrite("tolerance", &Adaptive2d::tolerance);
-		Adaptive2d.def_readwrite("opType", &Adaptive2d::opType);
-		Adaptive2d.def_readwrite("processHoles", &Adaptive2d::processHoles);
+		Adaptive2d.def_readwrite("opType", &Adaptive2d::opType);		
 		#ifdef DEBUG_VISALIZATION
 		// debugging
 		Adaptive2d.def_readwrite("DrawCircleFn", &Adaptive2d::DrawCircleFn);

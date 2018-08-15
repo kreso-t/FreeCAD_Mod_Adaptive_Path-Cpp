@@ -104,12 +104,12 @@ def drawPathFn(path, color):
     if color>20: time.sleep(2)
 
 a2d = PathAdaptiveCore.Adaptive2d()
-a2d.stepOverFactor=0.4
+a2d.stepOverFactor=0.2
 a2d.tolerance = 0.1
 
-# a2d.DrawCircleFn = drawCircle
-# a2d.ClearScreenFn = clear
-# a2d.DrawPathFn = drawPathFn
+a2d.DrawCircleFn = drawCircle
+a2d.ClearScreenFn = clear
+a2d.DrawPathFn = drawPathFn
 
 a2d.toolDiameter = toolDia
 
@@ -128,8 +128,7 @@ clear()
 pygame.display.update()
 
 a2d.polyTreeNestingLimit = 0
-a2d.processHoles = True
-a2d.opType =  PathAdaptiveCore.OperationType.ProfilingInside
+a2d.opType =  PathAdaptiveCore.OperationType.ProfilingOutside;
 result=a2d.Execute(paths,feecback)
 
 

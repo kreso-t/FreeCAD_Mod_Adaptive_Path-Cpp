@@ -833,94 +833,202 @@ namespace AdaptivePath {
 			inputPaths.push_back(cpth);
 		}
 
+		SimplifyPolygons(inputPaths);
 
 		// *******************************
 		//	Resolve hierarchy and run processing
-		// ******************************
-		if(opType==OperationType::otProfilingInside) {
-			clipof.Clear();
-			clipof.AddPaths(inputPaths,JoinType::jtSquare,EndType::etClosedPolygon);
-			Paths off1;
-			clipof.Execute(off1,-2*(helixRampRadiusScaled+toolRadiusScaled));
+		// ********************************
 
-			clip.Clear();
-			clip.AddPaths(inputPaths,PolyType::ptSubject,true);
-			clip.AddPaths(off1,PolyType::ptClip,true);
-			clip.Execute(ClipType::ctDifference,inputPaths,PolyFillType::pftEvenOdd);
-		}
+		// if(opType==OperationType::otProfilingOutside) {
+		// 	clipof.Clear();
+		// 	clipof.AddPaths(inputPaths,JoinType::jtSquare,EndType::etClosedPolygon);
+		// 	Paths off1;
+		// 	clipof.Execute(off1,2*(helixRampRadiusScaled+toolRadiusScaled));
 
-		if(opType==OperationType::otProfilingOutside) {
-			clipof.Clear();
-			clipof.AddPaths(inputPaths,JoinType::jtSquare,EndType::etClosedPolygon);
-			Paths off1;
-			clipof.Execute(off1,2*(helixRampRadiusScaled+toolRadiusScaled));
+		// 	clip.Clear();
+		// 	clip.AddPaths(off1,PolyType::ptSubject,true);
+		// 	clip.AddPaths(inputPaths,PolyType::ptClip,true);
+		// 	clip.Execute(ClipType::ctDifference,inputPaths,PolyFillType::pftEvenOdd);
+		// }
 
-			clip.Clear();
-			clip.AddPaths(off1,PolyType::ptSubject,true);
-			clip.AddPaths(inputPaths,PolyType::ptClip,true);
-			clip.Execute(ClipType::ctDifference,inputPaths,PolyFillType::pftEvenOdd);
-		}
+		if(opType==OperationType::otClearing) {
+				clipof.Clear();
+				clipof.AddPaths(inputPaths,JoinType::jtRound,EndType::etClosedPolygon);
+				PolyTree initialTree;
+				clipof.Execute(initialTree,-toolRadiusScaled-finishPassOffsetScaled);
 
-		clipof.Clear();
-		clipof.AddPaths(inputPaths,JoinType::jtRound,EndType::etClosedPolygon);
-		PolyTree initialTree;
-		clipof.Execute(initialTree,-toolRadiusScaled-finishPassOffsetScaled);
+				PolyNode *current = initialTree.GetFirst();
+				while(current!=0) {
+					if(!current->IsHole()) {
+						int nesting = 0;
+						PolyNode *parent = current->Parent;
+						while(parent->Parent) {
+							nesting++;
+							parent=parent->Parent;
+						}
+						//cout<< " nesting:" << nesting << " limit:" << polyTreeNestingLimit << " processHoles:" << processHoles << endl;
+						if(polyTreeNestingLimit==0 || nesting<polyTreeNestingLimit) {
 
-		PolyNode *current = initialTree.GetFirst();
-		while(current!=0) {
-			if(!current->IsHole()) {
-				int nesting = 0;
-				PolyNode *parent = current->Parent;
-				while(parent->Parent) {
-					nesting++;
-					parent=parent->Parent;
-				}
-				//cout<< " nesting:" << nesting << " limit:" << polyTreeNestingLimit << " processHoles:" << processHoles << endl;
-				if(polyTreeNestingLimit==0 || nesting<polyTreeNestingLimit) {
-					Paths toolBoundPaths;
+							Paths toolBoundPaths;
+							toolBoundPaths.push_back(current->Contour);
+							if(polyTreeNestingLimit != nesting+1) {
+								for(size_t i=0;i<current->ChildCount();i++)
+									toolBoundPaths.push_back(current->Childs[i]->Contour);
+							}
 
-					toolBoundPaths.push_back(current->Contour);
-					if(processHoles) {
-						for(int i=0;i<current->ChildCount();i++)
-							toolBoundPaths.push_back(current->Childs[i]->Contour);
+							// calc bounding paths - i.e. area that must be cleared inside
+							// it's not the same as input paths due to filtering (nesting logic)
+							Paths boundPaths;
+							clipof.Clear();
+							clipof.AddPaths(toolBoundPaths,JoinType::jtRound,EndType::etClosedPolygon);
+							clipof.Execute(boundPaths,toolRadiusScaled+finishPassOffsetScaled);
+							ProcessPolyNode(boundPaths,toolBoundPaths);
+						}
 					}
-					// calc bounding paths - i.e. area that must be cleared inside
-					// it's not the same as input paths due to filtering (nesting logic)
-					Paths boundPaths;
-					clipof.Clear();
-					clipof.AddPaths(toolBoundPaths,JoinType::jtRound,EndType::etClosedPolygon);
-					clipof.Execute(boundPaths,toolRadiusScaled+finishPassOffsetScaled);
-					ProcessPolyNode(boundPaths,toolBoundPaths);
+					current = current->GetNext();
 				}
-			}
-			current = current->GetNext();
+		}
+
+		if(opType==OperationType::otProfilingInside || opType==OperationType::otProfilingOutside) {
+				double offset = opType==OperationType::otProfilingInside  ? -2*(helixRampRadiusScaled+toolRadiusScaled)-RESOLUTION_FACTOR : 2*(helixRampRadiusScaled+toolRadiusScaled) + RESOLUTION_FACTOR;
+				clipof.Clear();
+				clipof.AddPaths(inputPaths,JoinType::jtRound,EndType::etClosedPolygon);
+				PolyTree initialTree;
+				clipof.Execute(initialTree,0);
+
+				PolyNode *current = initialTree.GetFirst();
+				while(current!=0) {
+					if(!current->IsHole()) {
+						int nesting = 0;
+						PolyNode *parent = current->Parent;
+						while(parent->Parent) {
+							nesting++;
+							parent=parent->Parent;
+						}
+						//cout<< " nesting:" << nesting << " limit:" << polyTreeNestingLimit << " processHoles:" << processHoles << endl;
+						if(polyTreeNestingLimit==0 || nesting<polyTreeNestingLimit) {
+							Paths profilePaths;
+							profilePaths.push_back(current->Contour);
+							if(polyTreeNestingLimit != nesting+1) {
+								for(size_t i=0;i<current->ChildCount();i++) profilePaths.push_back(current->Childs[i]->Contour);
+							}
+							for(size_t i=0;i<profilePaths.size();i++) {
+										double efOffset= i==0 ? offset : -offset;
+										clipof.Clear();
+										clipof.AddPath(profilePaths[i],JoinType::jtSquare,EndType::etClosedPolygon);
+										Paths off1;
+										clipof.Execute(off1,efOffset);
+										// make poly between original path and ofset path
+										Paths boundPaths;
+										clip.Clear();
+										if(efOffset<0) {
+											clip.AddPath(profilePaths[i],PolyType::ptSubject,true);
+											clip.AddPaths(off1,PolyType::ptClip,true);
+										} else {
+											clip.AddPaths(off1,PolyType::ptSubject,true);
+											clip.AddPath(profilePaths[i],PolyType::ptClip,true);
+										}
+										clip.Execute(ClipType::ctDifference,boundPaths,PolyFillType::pftEvenOdd);
+
+										Paths toolBoundPaths;
+										clipof.Clear();
+										clipof.AddPaths(boundPaths,JoinType::jtRound,EndType::etClosedPolygon);
+										clipof.Execute(toolBoundPaths,-toolRadiusScaled-finishPassOffsetScaled);
+										ProcessPolyNode(boundPaths,toolBoundPaths);
+							}
+							// // calc bounding paths - i.e. area that must be cleared inside
+							// // it's not the same as input paths due to filtering (nesting logic)
+							// Paths boundPaths;
+							// clipof.Clear();
+							// clipof.AddPaths(toolBoundPaths,JoinType::jtRound,EndType::etClosedPolygon);
+							// clipof.Execute(boundPaths,toolRadiusScaled+finishPassOffsetScaled);
+							// ProcessPolyNode(boundPaths,toolBoundPaths);
+						}
+					}
+					current = current->GetNext();
+				}
 		}
 
 		return results;
 	}
 
-	bool Adaptive2d::FindEntryPoint(const Paths & toolBoundPaths, IntPoint &entryPoint /*output*/) {
+	bool Adaptive2d::FindEntryPoint(const Paths & toolBoundPaths,const Paths &boundPaths, Paths &cleared /*output-initial cleard area by helix*/, IntPoint &entryPoint /*output*/) {
 		Paths incOffset;
 		Paths lastValidOffset;
+		Clipper clip;
 		ClipperOffset clipof;
-		clipof.Clear();
-		clipof.AddPaths(toolBoundPaths,JoinType::jtSquare,EndType::etClosedPolygon);
-		double step = RESOLUTION_FACTOR;
-		double currentDelta=-1;
-		clipof.Execute(incOffset,currentDelta);
-		while(incOffset.size()>0) {
+		bool found= false;
+
+		Paths checkPaths = toolBoundPaths;
+		for(int iter=0;iter<10;iter++) {
+			clipof.Clear();
+			clipof.AddPaths(checkPaths,JoinType::jtSquare,EndType::etClosedPolygon);
+			double step = RESOLUTION_FACTOR;
+			double currentDelta=-1;
 			clipof.Execute(incOffset,currentDelta);
-			if(incOffset.size()>0) lastValidOffset=incOffset;
-			currentDelta-=step;
-		}
-		for(int i=0;i<lastValidOffset.size();i++) {
-			if(lastValidOffset[i].size()>0) {
-				entryPoint = Compute2DPolygonCentroid(lastValidOffset[i]);
-				return true;
+			while(incOffset.size()>0) {
+				clipof.Execute(incOffset,currentDelta);
+				if(incOffset.size()>0) lastValidOffset=incOffset;
+				currentDelta-=step;
 			}
+			for(int i=0;i<lastValidOffset.size();i++) {
+				if(lastValidOffset[i].size()>0) {
+					entryPoint = Compute2DPolygonCentroid(lastValidOffset[i]);
+					//DrawPath(lastValidOffset[i],22);
+					found=true;
+					break;
+				}
+			}
+			// check if the start point is in any of the holes
+			// this may happen in case when toolBoundPaths are simetric (boundary + holes)
+			// we need to break simetry and try again
+			for(size_t j=0;j<checkPaths.size();j++) {
+				int pip = PointInPolygon(entryPoint,checkPaths[j]);
+				if((j==0 && pip==0) || (j>0 && pip!=0)  ) {
+					found=false;
+					break;
+				}
+			}
+			// check if helix fits
+			if(found) {
+				// make initial polygon cleard by helix ramp
+				clipof.Clear();
+				Path p1;
+				p1.push_back(entryPoint);
+				clipof.AddPath(p1,JoinType::jtRound,EndType::etOpenRound);
+				clipof.Execute(cleared,helixRampRadiusScaled+toolRadiusScaled);
+				CleanPolygons(cleared);
+				// we got first cleared area - check if it is crossing boundary
+				clip.Clear();
+				clip.AddPaths(cleared,PolyType::ptSubject,true);
+				clip.AddPaths(boundPaths,PolyType::ptClip,true);
+				Paths crossing;
+				clip.Execute(ClipType::ctDifference,crossing);
+				if(crossing.size()>0) {
+					cerr<<"Helix does not fit to the cutting area"<<endl;
+					found=false;
+				}
+			}
+
+			if(!found) { // break simetry and try again
+				clip.Clear();
+				clip.AddPaths(checkPaths,PolyType::ptSubject, true);
+				auto bounds=clip.GetBounds();
+				clip.Clear();
+				Path rect;
+				rect <<  IntPoint(bounds.left,bounds.bottom);
+				rect << IntPoint(bounds.left, (bounds.top+bounds.bottom)/2);
+				rect << IntPoint((bounds.left + bounds.right)/2, (bounds.top+bounds.bottom)/2);
+				rect << IntPoint((bounds.left + bounds.right)/2, bounds.bottom);
+				clip.AddPath(rect,PolyType::ptSubject, true);
+				clip.AddPaths(checkPaths,PolyType::ptClip,true);
+				clip.Execute(ClipType::ctIntersection,checkPaths);
+			}
+			if(found) break;
 		}
-		cerr<<"Start point not found!"<<endl;
-		return false;
+		//DrawCircle(entryPoint,scaleFactor,10);
+		if(!found) cerr<<"Start point not found!"<<endl;
+		return found;
 	}
 
 	/**
@@ -997,40 +1105,25 @@ namespace AdaptivePath {
 		while(progressPaths[0].Points.size()>0) progressPaths[0].Points.pop_back();
 		progressPaths[0].Points.push_back(next);
 	}
-	void Adaptive2d::ProcessPolyNode(const Paths & boundPaths, const Paths & toolBoundPaths) {
+	void Adaptive2d::ProcessPolyNode(Paths & boundPaths, Paths & toolBoundPaths) {
 		Perf_ProcessPolyNode.Start();
 		// node paths are already constrained to tool boundary path for adaptive path before finishing pass
 
 		IntPoint entryPoint;
 		TPaths progressPaths;
-
-		if(!FindEntryPoint(boundPaths, entryPoint)) return;
-		cout << "Entry point:" << entryPoint << endl;
+		SimplifyPolygons(toolBoundPaths);
+		CleanPolygons(toolBoundPaths);
+		SimplifyPolygons(boundPaths);
+		CleanPolygons(toolBoundPaths);
 
 		Paths cleared;
+		if(!FindEntryPoint(toolBoundPaths, boundPaths, cleared, entryPoint)) return;
+		cout << "Entry point:" << entryPoint << endl;
+		Clipper clip;
 		ClipperOffset clipof;
 		AdaptiveOutput output;
 		output.HelixCenterPoint.first = double(entryPoint.X)/scaleFactor;
 		output.HelixCenterPoint.second =double(entryPoint.Y)/scaleFactor;
-
-		// make initial polygon cleard by helix ramp
-		clipof.Clear();
-		Path p1;
-		p1.push_back(entryPoint);
-		clipof.AddPath(p1,JoinType::jtRound,EndType::etOpenRound);
-		clipof.Execute(cleared,helixRampRadiusScaled+toolRadiusScaled);
-		CleanPolygons(cleared);
-		Clipper clip;
-		// we got first cleared area - check if it is crossing boundary
-		clip.Clear();
-		clip.AddPaths(cleared,PolyType::ptSubject,true);
-		clip.AddPaths(boundPaths,PolyType::ptClip,true);
-		Paths crossing;
-		clip.Execute(ClipType::ctDifference,crossing);
-		if(crossing.size()>0) {
-			cerr<<"Helix does not fit to the cutting area, try limiting the helix diameter to a smaller value."<<endl;
-			return;
-		}
 
 		long stepScaled;
 		IntPoint engagePoint;
