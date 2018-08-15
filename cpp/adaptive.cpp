@@ -785,7 +785,7 @@ namespace AdaptivePath {
 		//**********************************
 		// Initializations
 		// **********************************
-		scaleFactor = 0.5*RESOLUTION_FACTOR/tolerance;
+		scaleFactor = 0.7*RESOLUTION_FACTOR/tolerance;
 		toolRadiusScaled = toolDiameter*scaleFactor/2;
 		bbox_size =toolDiameter*scaleFactor;
 		progressCallback = &progressCallbackFn;
