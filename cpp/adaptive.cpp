@@ -355,14 +355,14 @@ namespace AdaptivePath {
 			// adds point keeping the incremental order of areas in order for interpolation to work correctly
 			void addPoint(double area, double angle) {
 				std::size_t size = areas.size();
-				if(size==0 || area > areas[size-1]) { // first point or largest area point
+				if(size==0 || area > areas[size-1] + NTOL) { // first point or largest area point
 					areas.push_back(area);
 					angles.push_back(angle);
 					return;
 				}
 
 				for(std::size_t i=0;i<size;i++) {
-					if(area<areas[i]) {
+					if(area<areas[i] - NTOL && (i==0 || area > areas[i-1] + NTOL)) {
 						areas.insert(areas.begin() + i,area);
 						angles.insert(angles.begin() + i,angle);
 					}
@@ -1280,13 +1280,12 @@ namespace AdaptivePath {
 						}
 				}
 
-				if(area>3*optimalCutAreaPD+10 && areaPD>2*optimalCutAreaPD+10) {
+				if(area>3*optimalCutAreaPD+10 && areaPD>1.2*optimalCutAreaPD+10) {
 					cerr<<"Break: over cut" << endl;
 					break;
 				}
 
-				if(toClearPath.size()==0) toClearPath.push_back(toolPos);
-				toClearPath.push_back(newToolPos);
+
 				if(firstEngagePoint) { // initial spiral shape need clearing in smaller intervals
 					double distFromEntry = sqrt(DistanceSqrd(toolPos,entryPoint));
 					double circ = distFromEntry * M_PI;
@@ -1309,6 +1308,9 @@ namespace AdaptivePath {
 				}
 
 				if(area>0) { // cut is ok - record it
+					if(toClearPath.size()==0) toClearPath.push_back(toolPos);
+					toClearPath.push_back(newToolPos);
+
 					cumulativeCutArea+=area;
 
 					// append to toolpaths
