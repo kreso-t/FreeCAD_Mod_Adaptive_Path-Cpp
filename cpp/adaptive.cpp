@@ -820,7 +820,7 @@ namespace AdaptivePath {
 		clip.Execute(ClipType::ctDifference,crossing);
 		referenceCutArea = fabs(Area(crossing[0]));
 		optimalCutAreaPD =2 * stepOverFactor * referenceCutArea/toolRadiusScaled;
-		
+
 		// **********************
 		// Convert input paths to clipper
 		//************************

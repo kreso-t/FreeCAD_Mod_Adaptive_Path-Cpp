@@ -5,7 +5,7 @@
 #ifndef ADAPTIVE_HPP
 #define ADAPTIVE_HPP
 
-#define DEV_MODE
+//#define DEV_MODE
 
 #define NTOL 1.0e-7  // numeric tolerance
 
@@ -19,7 +19,7 @@ namespace AdaptivePath {
 	typedef std::pair<double,double> DPoint;
 	typedef std::vector<DPoint> DPath;
 	typedef std::vector<DPath> DPaths;
-	typedef std::pair<MotionType,DPath> TPath;
+	typedef std::pair<int,DPath> TPath; // first parameter is MotionType, must use int due to problem with serialization to JSON in python
 
 	// struct TPath { #this does not work correctly with pybind for some reason, changed to pair
 	// 		DPath Points;
@@ -32,7 +32,7 @@ namespace AdaptivePath {
 		DPoint HelixCenterPoint;
 		DPoint StartPoint;
 		TPaths AdaptivePaths;
-		MotionType ReturnMotionType;
+		int ReturnMotionType; // MotionType enum, problem with serialization if enum is used
 	};
 
 	// used to isolate state -> enable potential adding of multi-threaded processing of separate regions

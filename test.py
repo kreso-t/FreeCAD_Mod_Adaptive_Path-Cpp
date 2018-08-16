@@ -2,6 +2,7 @@ import PathAdaptiveCore
 import pygame
 import sys
 import time
+import json
 pygame.init()
 # x_off = 1024/2 - 200
 # y_off = 768/2 + 200
@@ -12,13 +13,13 @@ pygame.init()
 # center_x = 39.58
 # center_y = 72.55
 
-center_x = 80
-center_y = 80
+center_x = 50
+center_y = 50
 
 
 screen_x=1024
 screen_y=768
-scale = 20
+scale = 5
 
 screen=pygame.display.set_mode((screen_x,screen_y))
 screen.fill((255,255,255))

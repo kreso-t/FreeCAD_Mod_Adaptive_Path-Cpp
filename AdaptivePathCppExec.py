@@ -43,12 +43,12 @@ def sceneClean():
 
 
 def GenerateGCode(op,obj,adaptiveResults, helixDiameter):
-    if len(adaptiveResults)==0 or len(adaptiveResults[0].AdaptivePaths)==0:
+    if len(adaptiveResults)==0 or len(adaptiveResults[0]["AdaptivePaths"])==0:
       return
 
     minLiftDistance = op.tool.Diameter
-    p1 =  adaptiveResults[0].HelixCenterPoint
-    p2 =  adaptiveResults[0].StartPoint
+    p1 =  adaptiveResults[0]["HelixCenterPoint"]
+    p2 =  adaptiveResults[0]["StartPoint"]
     helixRadius =math.sqrt((p1[0]-p2[0]) * (p1[0]-p2[0]) +  (p1[1]-p2[1]) * (p1[1]-p2[1]))
     stepDown = obj.StepDown.Value
     passStartDepth=obj.StartDepth.Value
@@ -62,8 +62,8 @@ def GenerateGCode(op,obj,adaptiveResults, helixDiameter):
         stepUp=0
 
 
-    lx=adaptiveResults[0].HelixCenterPoint[0]
-    ly=adaptiveResults[0].HelixCenterPoint[1]
+    lx=adaptiveResults[0]["HelixCenterPoint"][0]
+    ly=adaptiveResults[0]["HelixCenterPoint"][1]
 
     #print "Helix step down per full circle:" , depthPerOneCircle, " (len:" , length , ")"
 
@@ -77,10 +77,10 @@ def GenerateGCode(op,obj,adaptiveResults, helixDiameter):
         if passEndDepth<obj.FinalDepth.Value: passEndDepth=obj.FinalDepth.Value
 
         for region in adaptiveResults:
-            startAngle = math.atan2(region.StartPoint[1] - region.HelixCenterPoint[1], region.StartPoint[0] - region.HelixCenterPoint[0])
+            startAngle = math.atan2(region["StartPoint"][1] - region["HelixCenterPoint"][1], region["StartPoint"][0] - region["HelixCenterPoint"][0])
 
-            lx=region.HelixCenterPoint[0]
-            ly=region.HelixCenterPoint[1]
+            lx=region["HelixCenterPoint"][0]
+            ly=region["HelixCenterPoint"][1]
 
             r = helixRadius - 0.01
             #spiral ramp
@@ -89,7 +89,7 @@ def GenerateGCode(op,obj,adaptiveResults, helixDiameter):
             fi = 0
             offsetFi =-maxfi + startAngle-math.pi/16
 
-            helixStart = [region.HelixCenterPoint[0] + r * math.cos(offsetFi), region.HelixCenterPoint[1] + r * math.sin(offsetFi)]
+            helixStart = [region["HelixCenterPoint"][0] + r * math.cos(offsetFi), region["HelixCenterPoint"][1] + r * math.sin(offsetFi)]
 
             op.commandlist.append(Path.Command("(helix to depth: %f)"%passEndDepth))
             #if step == 1:
@@ -104,8 +104,8 @@ def GenerateGCode(op,obj,adaptiveResults, helixDiameter):
                                   "X": helixStart[0], "Y": helixStart[1], "Z": passStartDepth, "F": op.vertFeed}))
 
             while fi<maxfi:
-                x = region.HelixCenterPoint[0] + r * math.cos(fi+offsetFi)
-                y = region.HelixCenterPoint[1] + r * math.sin(fi+offsetFi)
+                x = region["HelixCenterPoint"][0] + r * math.cos(fi+offsetFi)
+                y = region["HelixCenterPoint"][1] + r * math.sin(fi+offsetFi)
                 z = passStartDepth - fi / maxfi * (passStartDepth - passEndDepth)
                 op.commandlist.append(Path.Command("G1", { "X": x, "Y":y, "Z":z, "F": op.vertFeed}))
                 lx=x
@@ -113,7 +113,7 @@ def GenerateGCode(op,obj,adaptiveResults, helixDiameter):
                 fi=fi+math.pi/16
             op.commandlist.append(Path.Command("(adaptive - depth: %f)"%passEndDepth))
             #add adaptive paths
-            for pth in region.AdaptivePaths:
+            for pth in region["AdaptivePaths"]:
                 #print pth.Points
                 motionType = pth[0]  #[0] contains motion type
                 for pt in pth[1]: #[1] contains list of points
@@ -249,7 +249,16 @@ def Execute(op,obj):
             a2d.tolerance = obj.Tolerance
             a2d.opType = opType
             a2d.polyTreeNestingLimit = nestingLimit
-            adaptiveResults = a2d.Execute(path2d,progressFn)
+            results = a2d.Execute(path2d,progressFn)
+            #need to convert it to python object to be JSON serializable
+            adaptiveResults = []
+            for result in results:
+                adaptiveResults.append({
+                    "HelixCenterPoint": result.HelixCenterPoint,
+                    "StartPoint": result.StartPoint,
+                    "AdaptivePaths": result.AdaptivePaths,
+                    "ReturnMotionType": result.ReturnMotionType })
+
 
 
         GenerateGCode(op,obj,adaptiveResults,helixDiameter)
