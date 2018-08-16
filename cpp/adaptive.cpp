@@ -1265,7 +1265,14 @@ namespace AdaptivePath {
 						if(IntersectionPoint(toolBoundPaths,toolPos,newToolPos, boundaryPoint)) {
 							newToolPos=boundaryPoint;
 							area = CalcCutArea(clip,toolPos,newToolPos,cleared);
-							areaPD = area/double(stepScaled); // area per distance
+							double dist = sqrt(DistanceSqrd(toolPos, newToolPos));
+							if(dist>NTOL)
+								areaPD = area/double(dist); // area per distance
+							else {
+								areaPD=0;
+								area=0;
+							}
+
 						} else {
 							newToolPos=toolPos;
 							area=0;
