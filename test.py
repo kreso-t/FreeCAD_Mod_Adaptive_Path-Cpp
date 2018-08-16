@@ -12,13 +12,13 @@ pygame.init()
 # center_x = 39.58
 # center_y = 72.55
 
-center_x = 50
-center_y = 50
+center_x = 80
+center_y = 80
 
 
 screen_x=1024
 screen_y=768
-scale = 7
+scale = 20
 
 screen=pygame.display.set_mode((screen_x,screen_y))
 screen.fill((255,255,255))
@@ -131,7 +131,7 @@ pygame.display.update()
 a2d.polyTreeNestingLimit = 0
 a2d.opType =  PathAdaptiveCore.OperationType.Clearing;
 result=a2d.Execute(paths,feecback)
-
+clear()
 for output in result:
     for pth in output.AdaptivePaths:
        if pth[0] == PathAdaptiveCore.MotionType.Cutting:

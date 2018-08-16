@@ -5,7 +5,7 @@
 #ifndef ADAPTIVE_HPP
 #define ADAPTIVE_HPP
 
-//#define DEV_MODE
+#define DEV_MODE
 
 #define NTOL 1.0e-7  // numeric tolerance
 
@@ -110,7 +110,7 @@ namespace AdaptivePath {
 
 		private: // constants for fine tuning
 			const double RESOLUTION_FACTOR = 8.0;
-			const double MIN_CUT_AREA_FACTOR = 0.05; // filter cuts that with cumulative area below this threshold
+
 			const int MAX_ITERATIONS = 16;
 			const double AREA_ERROR_FACTOR = 20; /* how precise to match the cut area to optimal */
 			const int ANGLE_HISTORY_POINTS=10;
@@ -119,6 +119,9 @@ namespace AdaptivePath {
 			const int DIRECTION_SMOOTHING_BUFLEN=5; // gyro points
 			const double CLEAN_PATH_TOLERANCE = 1;
 			const double FINISHING_CLEAN_PATH_TOLERANCE = 0.5;
+
+			// used for filtering out of insignificant cuts:
+			const double MIN_CUT_AREA_FACTOR = 0.02; // influences filtering of cuts that with cumulative area below threshold, reasonable value is between 0.01 and 0.1
 
 			const long PASSES_LIMIT = 10000000; // limit used for debugging
 			const long POINTS_PER_PASS_LIMIT = 100000000; // limit used for debugging

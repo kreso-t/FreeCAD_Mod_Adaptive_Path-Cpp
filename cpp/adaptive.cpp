@@ -684,7 +684,7 @@ namespace AdaptivePath {
 						// DrawCircle(fpc2,scaleFactor/4,1);
 						// DrawCircle(lpc2,scaleFactor/4,2);
 						Path pthToSubtract ;
-						pthToSubtract << fpc2;
+						pthToSubtract.push_back(fpc2);
 
 						double fi1 = atan2(fpc2.Y-c2.Y,fpc2.X-c2.X);
 						double fi2 = atan2(lpc2.Y-c2.Y,lpc2.X-c2.X);
@@ -756,7 +756,7 @@ namespace AdaptivePath {
 							prevPt = cpt;
 						}
 
-						pthToSubtract << lpc2; // add last point
+						pthToSubtract.push_back(lpc2); // add last point
 						pthToSubtract.push_back(c2);
 
 						double segArea =Area(pthToSubtract);
@@ -820,8 +820,7 @@ namespace AdaptivePath {
 		clip.Execute(ClipType::ctDifference,crossing);
 		referenceCutArea = fabs(Area(crossing[0]));
 		optimalCutAreaPD =2 * stepOverFactor * referenceCutArea/toolRadiusScaled;
-		minCutAreaPD = optimalCutAreaPD/3 +1; // influences decreasing of cut area near boundary, i.e. avoiding boundary
-
+		
 		// **********************
 		// Convert input paths to clipper
 		//************************
@@ -1120,7 +1119,7 @@ namespace AdaptivePath {
 		IntPoint newToolPos;
 		DoublePoint newToolDir;
 
-		// visualize/progess for helix
+		// visualize/progress for helix
 		clipof.Clear();
 		Path hp;
 		hp << entryPoint;
@@ -1191,12 +1190,17 @@ namespace AdaptivePath {
 				total_points++;
 				AverageDirection(gyro, toolDir);
 				Perf_DistanceToBoundary.Start();
-				double distanceToBoundary = sqrt(DistancePointToPathsSqrd(toolBoundPaths, toolPos, clp));
+
+				double distanceToBoundary = __DBL_MAX__;
+				// double range = 2*toolRadiusScaled*stepOverFactor;
+				// if(IntersectionPoint(toolBoundPaths,toolPos,IntPoint(toolPos.X + range* toolDir.X,toolPos.Y + range* toolDir.Y), clp)) {
+				// 	distanceToBoundary=sqrt(DistanceSqrd(toolPos,clp));
+				// }
 				Perf_DistanceToBoundary.Stop();
 				double distanceToEngage = sqrt(DistanceSqrd(toolPos,engagePoint));
-				double relDistToBoundary = 4.0 * distanceToBoundary/toolRadiusScaled;
+				double relDistToBoundary = distanceToBoundary/toolRadiusScaled ;
 
-				double targetAreaPD=optimalCutAreaPD;
+				double	targetAreaPD =  optimalCutAreaPD; //*(0.8*(1-exp(-4*distanceToBoundary/toolRadiusScaled)) + 0.2);
 
 				// set the step size
 				if(distanceToBoundary<2*toolRadiusScaled || distanceToEngage<2*toolRadiusScaled) {
@@ -1207,10 +1211,7 @@ namespace AdaptivePath {
 					stepScaled = RESOLUTION_FACTOR*4 ;
 				}
 
-				// modify/slightly decrease target cut area at the end of cut
-				if(relDistToBoundary<1.0 && distanceToEngage>toolRadiusScaled) {
-					targetAreaPD = relDistToBoundary*(optimalCutAreaPD-minCutAreaPD) + minCutAreaPD;
-				}
+
 
 				// clamp the step size - for stability
 
@@ -1257,8 +1258,7 @@ namespace AdaptivePath {
 				/************************************************
 				 * CHECK AND RECORD NEW TOOL POS
 				 * **********************************************/
-				if(distanceToBoundary<toolRadiusScaled
-					&& !IsPointWithinCutRegion(toolBoundPaths,newToolPos)) {
+				if(!IsPointWithinCutRegion(toolBoundPaths,newToolPos)) {
 						reachedBoundary=true;
 						// we reached end of cutting area
 						IntPoint boundaryPoint;
