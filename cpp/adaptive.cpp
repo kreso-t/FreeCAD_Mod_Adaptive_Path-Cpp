@@ -1294,8 +1294,10 @@ namespace AdaptivePath {
 
 				if(area>stepScaled*optimalCutAreaPD && areaPD>2*optimalCutAreaPD) { // safety condition
 					over_cut_count++;
+					#ifdef DEV_MODE
 					cout<<"Break: over cut @"  << point_index  << "(" << double(toolPos.X)/scaleFactor << ","<< double(toolPos.Y)/scaleFactor  << ")"
 								<< " iter:" << iteration << " @bound:" << reachedBoundary << endl;
+					#endif
 					// ClearScreenFn();
 					// DrawCircle(toolPos,toolRadiusScaled,0);
 					// DrawCircle(newToolPos,toolRadiusScaled,1);
@@ -1348,10 +1350,12 @@ namespace AdaptivePath {
 					gyro.erase(gyro.begin());
 					CheckReportProgress(progressPaths);
 				} else {
-					// if(point_index==0) {
-					// 	engage_no_cut_count++;
-					// 	cout<<"Break:no cut #" << engage_no_cut_count << ", bad engage, pass:" << pass << " over_cut_count:" << over_cut_count << endl;
-					// }
+					#ifdef DEV_MODE
+						// if(point_index==0) {
+						// 	engage_no_cut_count++;
+						// 	cout<<"Break:no cut #" << engage_no_cut_count << ", bad engage, pass:" << pass << " over_cut_count:" << over_cut_count << endl;
+						// }
+					#endif
 					//cerr<<"Break: no cut @" << point_index << endl;
 					break;
 				}
@@ -1386,9 +1390,8 @@ namespace AdaptivePath {
 				engage.moveToClosestPoint(newToolPos,stepScaled+1);
 				firstEngagePoint=false;
 			} else {
-				double moveDistance = ENGAGE_SCAN_DISTANCE_FACTOR * stepOverFactor * toolRadiusScaled;
-				if(!engage.nextEngagePoint(this, cleared,moveDistance,ENGAGE_AREA_THR_FACTOR*optimalCutAreaPD*RESOLUTION_FACTOR,
-					referenceCutArea/2)) break;
+				double moveDistance = ENGAGE_SCAN_DISTANCE_FACTOR * RESOLUTION_FACTOR * 8;
+				if(!engage.nextEngagePoint(this, cleared,moveDistance,ENGAGE_AREA_THR_FACTOR*optimalCutAreaPD*RESOLUTION_FACTOR,2*referenceCutArea)) break;
 			}
 			toolPos = engage.getCurrentPoint();
 			toolDir = engage.getCurrentDir();

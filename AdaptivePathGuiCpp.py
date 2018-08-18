@@ -47,7 +47,7 @@ class TaskPanelOpPage(PathOpGui.TaskPanelPage):
         form.StepOver.setMinimum(15)
         form.StepOver.setMaximum(50)
         form.StepOver.setSingleStep(1)
-        form.StepOver.setValue(20)
+        form.StepOver.setValue(25)
         form.StepOver.setToolTip("Tool step over percentage")
         formLayout.addRow(QtGui.QLabel("Step Over Percent"),form.StepOver)
 

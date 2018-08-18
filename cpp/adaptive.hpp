@@ -5,7 +5,7 @@
 #ifndef ADAPTIVE_HPP
 #define ADAPTIVE_HPP
 
-#define DEV_MODE
+//#define DEV_MODE
 
 #define NTOL 1.0e-7  // numeric tolerance
 
@@ -117,7 +117,7 @@ namespace AdaptivePath {
 			const int DIRECTION_SMOOTHING_BUFLEN=3; // gyro points - used for angle smoothing
 
 			const double ENGAGE_AREA_THR_FACTOR=0.2; // influences minimal engage area (factor relation to optimal)
-			const double ENGAGE_SCAN_DISTANCE_FACTOR=0.2; // influences the engage scan/stepping distance
+			const double ENGAGE_SCAN_DISTANCE_FACTOR=0.1; // influences the engage scan/stepping distance
 
 			const double CLEAN_PATH_TOLERANCE = 1;
 			const double FINISHING_CLEAN_PATH_TOLERANCE = 0.5;
