@@ -23,7 +23,7 @@ scale = 5
 
 screen=pygame.display.set_mode((screen_x,screen_y))
 screen.fill((255,255,255))
-toolDia = 5
+toolDia = 10
 paths=[]
 
 def transCoord(pos):
@@ -105,27 +105,36 @@ def drawPathFn(path, color):
     if color>20: time.sleep(2)
 
 a2d = PathAdaptiveCore.Adaptive2d()
-a2d.stepOverFactor=0.2
-a2d.tolerance = 0.1
+a2d.stepOverFactor=0.1
+a2d.tolerance = 0.12
 a2d.helixRampDiameter = 1
 
-# a2d.DrawCircleFn = drawCircle
-# a2d.ClearScreenFn = clear
-# a2d.DrawPathFn = drawPathFn
-
+a2d.DrawCircleFn = drawCircle
+a2d.ClearScreenFn = clear
+a2d.DrawPathFn = drawPathFn
+toolDia = 10
 a2d.toolDiameter = toolDia
 
 
-path0 = [[-10,-10],[110,-10], [110,110], [-10,110]]
-path1 = [[0,0],[100,0], [100,100], [0,100]]
-path2 = [[30,30],[70,30], [70,70], [30,70]]
+#path0 = [[-10,-10],[110,-10], [110,110], [-10,110]]
+path1 = [[0,0],[90,0], [90,100], [0,100]]
+path2 = [[15,70],[25,70], [25,88], [15,88]]
+path3 = [[75,70],[85,70], [85,80], [75,80]]
+path4 = [[15,15],[25,15], [25,25], [15,25]]
+path5 = [[55,15],[75,15], [75,35], [55,35]]
 path2.reverse()
+path3.reverse()
+path4.reverse()
+path5.reverse()
 
-# path3 = [[40,40],[60,40], [60,60], [40,60]]
-# path4 = [[140,140],[160,140], [160,160], [140,160]]
-# paths = [path1,path2, path3,path4]
+
+#path3 = [[40,40],[60,40], [60,60], [40,60]]
+#path4 = [[140,140],[160,140], [160,160], [140,160]]
 paths.append(path1)
 paths.append(path2)
+paths.append(path3)
+paths.append(path4)
+paths.append(path5)
 clear()
 pygame.display.update()
 
