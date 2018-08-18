@@ -1391,7 +1391,7 @@ namespace AdaptivePath {
 				firstEngagePoint=false;
 			} else {
 				double moveDistance = ENGAGE_SCAN_DISTANCE_FACTOR * RESOLUTION_FACTOR * 8;
-				if(!engage.nextEngagePoint(this, cleared,moveDistance,ENGAGE_AREA_THR_FACTOR*optimalCutAreaPD*RESOLUTION_FACTOR,2*referenceCutArea)) break;
+				if(!engage.nextEngagePoint(this, cleared,moveDistance,ENGAGE_AREA_THR_FACTOR*optimalCutAreaPD*RESOLUTION_FACTOR,4*referenceCutArea*stepOverFactor)) break;
 			}
 			toolPos = engage.getCurrentPoint();
 			toolDir = engage.getCurrentDir();
