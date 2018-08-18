@@ -7,10 +7,10 @@
 
 //  re-using some lower level functions from ClipperLib
 namespace ClipperLib {
-	void TranslatePath(const Path& input, Path& output, IntPoint delta);
-	double DistanceFromLineSqrd(const IntPoint& pt, const IntPoint& ln1, const IntPoint& ln2);
-	bool SlopesNearCollinear(const IntPoint& pt1,const IntPoint& pt2, const IntPoint& pt3, double distSqrd);
-	bool PointsAreClose(IntPoint pt1, IntPoint pt2, double distSqrd);
+	 void TranslatePath(const Path& input, Path& output, IntPoint delta);
+	// double DistanceFromLineSqrd(const IntPoint& pt, const IntPoint& ln1, const IntPoint& ln2);
+	// bool SlopesNearCollinear(const IntPoint& pt1,const IntPoint& pt2, const IntPoint& pt3, double distSqrd);
+	// bool PointsAreClose(IntPoint pt1, IntPoint pt2, double distSqrd);
 }
 
 namespace AdaptivePath {

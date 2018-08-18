@@ -106,7 +106,7 @@ def drawPathFn(path, color):
 
 a2d = PathAdaptiveCore.Adaptive2d()
 a2d.stepOverFactor=0.25
-a2d.tolerance = 0.05
+a2d.tolerance = 0.1
 a2d.helixRampDiameter = 0.1
 
 # a2d.DrawCircleFn = drawCircle
