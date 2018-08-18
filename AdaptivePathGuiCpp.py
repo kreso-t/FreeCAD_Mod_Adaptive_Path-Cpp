@@ -8,7 +8,7 @@ from PySide import QtCore, QtGui
 
 class TaskPanelOpPage(PathOpGui.TaskPanelPage):
     def initPage(self, obj):
-        self.setTitle("Adaptive pocket operation")
+        self.setTitle("Adaptive path operation")
 
     def getIcon(self, icon):
         '''getIcon(icon) ... return icon for page or None.'''
