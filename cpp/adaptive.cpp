@@ -1427,23 +1427,25 @@ namespace AdaptivePath {
 
 		// dump performance results
 		#ifdef DEV_MODE
-		Perf_ProcessPolyNode.Stop();
-		Perf_ProcessPolyNode.DumpResults();
-		Perf_PointIterations.DumpResults();
-		Perf_CalcCutArea.DumpResults();
-		Perf_NextEngagePoint.DumpResults();
-		Perf_ExpandCleared.DumpResults();
-		Perf_DistanceToBoundary.DumpResults();
+			Perf_ProcessPolyNode.Stop();
+			Perf_ProcessPolyNode.DumpResults();
+			Perf_PointIterations.DumpResults();
+			Perf_CalcCutArea.DumpResults();
+			Perf_NextEngagePoint.DumpResults();
+			Perf_ExpandCleared.DumpResults();
+			Perf_DistanceToBoundary.DumpResults();
 		#endif
 		CheckReportProgress(progressPaths, true);
 		double duration=((double)(clock()-start_clock))/CLOCKS_PER_SEC;
-		cout<<"PolyNode perf:"<< perf_total_len/double(scaleFactor)/duration << " mm/sec"
-			<< " processed_points:" << total_points
-			<< " output_points:" << total_output_points
-			<< " total_iterations:" << total_iterations
-			<< " iter_per_point:" << (double(total_iterations)/((double(total_points)+0.001)))
-			<< " total_exceeded:" << total_exceeded  <<  " (" << 100 * double(total_exceeded)/double(total_points) << "%)"
-			<< endl;
+		#ifdef DEV_MODE
+			cout<<"PolyNode perf:"<< perf_total_len/double(scaleFactor)/duration << " mm/sec"
+				<< " processed_points:" << total_points
+				<< " output_points:" << total_output_points
+				<< " total_iterations:" << total_iterations
+				<< " iter_per_point:" << (double(total_iterations)/((double(total_points)+0.001)))
+				<< " total_exceeded:" << total_exceeded  <<  " (" << 100 * double(total_exceeded)/double(total_points) << "%)"
+				<< endl;
+		#endif
 		results.push_back(output);
 	}
 

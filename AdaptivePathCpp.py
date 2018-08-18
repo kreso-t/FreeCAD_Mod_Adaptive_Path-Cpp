@@ -3,6 +3,7 @@ import Path
 import FreeCAD
 import FreeCADGui
 from FreeCAD import Console
+import AdaptivePathCppExec
 
 class AdaptivePathOpCpp(PathOp.ObjectOp):
     def opFeatures(self, obj):
@@ -20,7 +21,7 @@ class AdaptivePathOpCpp(PathOp.ObjectOp):
         obj.addProperty("App::PropertyEnumeration", "OperationType", "Adaptive", "Type of adaptive operation")
         obj.OperationType = ['Clearing', 'Profiling']  # side of profile that cutter is on in relation to direction of profile
 
-        obj.addProperty("App::PropertyFloat", "Tolerance", "Adaptive",  "Clearing tolerance")
+        obj.addProperty("App::PropertyFloat", "Tolerance", "Adaptive",  "Influences accuracy and performance")
         obj.addProperty("App::PropertyPercent", "StepOver", "Adaptive", "Percent of cutter diameter to step over on each pass")
         obj.addProperty("App::PropertyDistance", "LiftDistance", "Adaptive", "Lift distance for rapid moves")
         obj.addProperty("App::PropertyBool", "ProcessHoles", "Adaptive","Process holes as well as the face outline")
@@ -32,7 +33,7 @@ class AdaptivePathOpCpp(PathOp.ObjectOp):
                                   "Adaptive", "Stop processing")
         obj.setEditorMode('StopProcessing', 2)  # hide this property
 
-        obj.addProperty("App::PropertyString", "AdaptiveInputState",
+        obj.addProperty("App::PropertyPythonObject", "AdaptiveInputState",
                         "Adaptive", "Internal input state")
         obj.addProperty("App::PropertyPythonObject", "AdaptiveOutputState",
                         "Adaptive", "Internal output state")
@@ -60,8 +61,7 @@ class AdaptivePathOpCpp(PathOp.ObjectOp):
         '''opExecute(obj) ... called whenever the receiver needs to be recalculated.
         See documentation of execute() for a list of base functionality provided.
         Should be overwritten by subclasses.'''
-        import AdaptivePathCppExec
-        reload(AdaptivePathCppExec)
+        #reload(AdaptivePathCppExec)
         AdaptivePathCppExec.Execute(self,obj)
 
 

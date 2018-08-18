@@ -147,7 +147,7 @@ def GenerateGCode(op,obj,adaptiveResults, helixDiameter):
 def Execute(op,obj):
     global sceneGraph
     global topZ
-    reload(AdaptiveUtils)
+    #reload(AdaptiveUtils)
     sceneGraph = FreeCADGui.ActiveDocument.ActiveView.getSceneGraph()
 
     Console.PrintMessage("*** Adaptive toolpath processing started...\n")
@@ -220,15 +220,13 @@ def Execute(op,obj):
 
         }
 
-        inputStateStr= json.dumps(inputStateObject)
-
         inputStateChanged=False
         adaptiveResults=None
 
         if obj.AdaptiveOutputState !=None and obj.AdaptiveOutputState != "":
              adaptiveResults = obj.AdaptiveOutputState
 
-        if obj.AdaptiveInputState != inputStateStr:
+        if json.dumps(obj.AdaptiveInputState) != json.dumps(inputStateObject):
              inputStateChanged=True
              adaptiveResults=None
 
@@ -250,7 +248,7 @@ def Execute(op,obj):
             a2d.opType = opType
             a2d.polyTreeNestingLimit = nestingLimit
             results = a2d.Execute(path2d,progressFn)
-            #need to convert it to python object to be JSON serializable
+            #need to convert results to python object to be JSON serializable
             adaptiveResults = []
             for result in results:
                 adaptiveResults.append({
@@ -263,30 +261,10 @@ def Execute(op,obj):
 
         GenerateGCode(op,obj,adaptiveResults,helixDiameter)
 
-        # for i in range(0 , len(features)):
-        #     feat = features[i]
-        #     if inputStateChanged or not hasOutputState:
-        #         if PROFILE:
-        #             profiler = cProfile.Profile()
-        #             baseToolPaths, startPoint= profiler.runcall(Adaptive.ProcessFeature.Execute,
-        #                              op, obj, i, feat, SCALE_FACTOR)
-        #             profiler.print_stats(sort='cumtime')
-        #         else:
-        #             baseToolPaths,startPoint=Adaptive.ProcessFeature.Execute(op,obj,i,feat, SCALE_FACTOR)
-        #         outputState = {
-        #             "baseToolPaths": baseToolPaths,
-        #             "startPoint" : startPoint
-        #         }
-        #         outputStateObj.append(outputState)
-        #     else:
-        #         Console.PrintMessage("State not changed, using cached base paths\n")
-        #     #Adaptive.GenerateGCode.Execute(op, obj, outputStateObj[i]["baseToolPaths"], outputStateObj[i]["startPoint"], SCALE_FACTOR)
-
-
         if not obj.StopProcessing:
             Console.PrintMessage("*** Done. Elapsed: %f sec\n\n" %(time.time()-start))
             obj.AdaptiveOutputState = adaptiveResults
-            obj.AdaptiveInputState=inputStateStr
+            obj.AdaptiveInputState=inputStateObject
         else:
             Console.PrintMessage("*** Processing cancelled (after: %f sec).\n\n" %(time.time()-start))
     finally:
