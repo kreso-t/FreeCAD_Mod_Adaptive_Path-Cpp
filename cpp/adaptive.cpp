@@ -448,6 +448,7 @@ namespace AdaptivePath {
 		bool nextEngagePoint(Adaptive2d*parent,  const Paths & cleared, double step, double minCutArea, double maxCutArea) {
 			//cout << "nextEngagePoint called step: " << step << endl;
 			Perf_NextEngagePoint.Start();
+			double prevArea = 0; // we want to make sure that we catch the point where the area is on raising slope
 			//IntPoint initialPoint = getCurrentPoint();
 			IntPoint initialPoint(-1000000000,-1000000000);
 			for(;;) {
@@ -458,15 +459,17 @@ namespace AdaptivePath {
 							Perf_NextEngagePoint.Stop();
 							return false; // nothin more to cut
 						}
+					 prevArea=0;
 					}
 				}
 				IntPoint cpt = getCurrentPoint();
 				double area=parent->CalcCutArea(clip,initialPoint,cpt,cleared);
 				//cout << "engage scan path: " << currentPathIndex << " distance:" << totalDistance << " area:" << area << " areaPD:" << area/step << " min:" << minCutArea << " max:" << maxCutArea << endl;
-				if(area>minCutArea && area<maxCutArea) {
+				if(area>minCutArea && area<maxCutArea && area>prevArea) {
 					Perf_NextEngagePoint.Stop();
 					return true;
 				}
+				prevArea=area;
 			}
 		}
 			IntPoint getCurrentPoint() {
@@ -632,7 +635,7 @@ namespace AdaptivePath {
 				p1 = p2;
 
 			}
-			if(interPaths.size()>1) break; // we will use poly clipping alg. if there are more intersecting paths
+			if(interPaths.size()>1) break; // we will use poly clipping alg. if there are more intersecting paths with the tool (rare case)
 		}
 
 		if(interPaths.size()==1 &&  interPaths.front().size()>1 ) {

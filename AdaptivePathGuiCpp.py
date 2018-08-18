@@ -66,7 +66,7 @@ class TaskPanelOpPage(PathOpGui.TaskPanelPage):
         form.HelixAngle.setSingleStep(0.1)
         form.HelixAngle.setValue(5)
         form.HelixAngle.setToolTip("Angle of the helix ramp entry")
-        formLayout.addRow(QtGui.QLabel("Helix ramp angle"),form.HelixAngle)
+        formLayout.addRow(QtGui.QLabel("Helix Ramp Angle"),form.HelixAngle)
 
         form.HelixDiameterLimit = QtGui.QDoubleSpinBox()
         form.HelixDiameterLimit.setMinimum(0.0)
@@ -74,7 +74,7 @@ class TaskPanelOpPage(PathOpGui.TaskPanelPage):
         form.HelixDiameterLimit.setSingleStep(0.1)
         form.HelixDiameterLimit.setValue(0)
         form.HelixDiameterLimit.setToolTip("If non zero it limits the size helix diameter, otherwise the tool radius is taken as the helix diameter")
-        formLayout.addRow(QtGui.QLabel("Helix max diameter"),form.HelixDiameterLimit)
+        formLayout.addRow(QtGui.QLabel("Helix Max Diameter"),form.HelixDiameterLimit)
 
         form.LiftDistance = QtGui.QDoubleSpinBox()
         form.LiftDistance.setMinimum(0.0)
@@ -82,7 +82,7 @@ class TaskPanelOpPage(PathOpGui.TaskPanelPage):
         form.LiftDistance.setSingleStep(0.1)
         form.LiftDistance.setValue(1.0)
         form.LiftDistance.setToolTip("How much to lift the tool up during the rapid repositioning moves (used when no obstacles)")
-        formLayout.addRow(QtGui.QLabel("Lift distance"),form.LiftDistance)
+        formLayout.addRow(QtGui.QLabel("Lift Distance"),form.LiftDistance)
 
 
 

@@ -45,7 +45,7 @@ class AdaptivePathOpCpp(PathOp.ObjectOp):
     def opSetDefaultValues(self, obj):
         obj.Side="Inside"
         obj.OperationType = "Clearing"
-        obj.Tolerance = 0.1
+        obj.Tolerance = 0.08
         obj.StepOver = 20
         obj.LiftDistance=1.0
         obj.ProcessHoles = True
