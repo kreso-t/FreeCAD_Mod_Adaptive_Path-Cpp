@@ -785,7 +785,12 @@ namespace AdaptivePath {
 		//**********************************
 		// Initializations
 		// **********************************
-		scaleFactor = 0.7*RESOLUTION_FACTOR/tolerance;
+
+		// a keep the tolerance in workable range
+		if(tolerance<0.01) tolerance=0.01;
+		if(tolerance>0.2) tolerance=0.2;
+
+		scaleFactor = RESOLUTION_FACTOR/tolerance;
 		toolRadiusScaled = toolDiameter*scaleFactor/2;
 		bbox_size =toolDiameter*scaleFactor;
 		progressCallback = &progressCallbackFn;
@@ -793,7 +798,7 @@ namespace AdaptivePath {
 		stopProcessing=false;
 
 		if(helixRampDiameter>toolDiameter) helixRampDiameter = toolDiameter;
-		if(helixRampDiameter<toolDiameter/2) helixRampDiameter = toolDiameter/2;
+		if(helixRampDiameter<toolDiameter/8) helixRampDiameter = toolDiameter/8;
 
 		helixRampRadiusScaled=helixRampDiameter*scaleFactor/2;
 		finishPassOffsetScaled=tolerance*scaleFactor/2;

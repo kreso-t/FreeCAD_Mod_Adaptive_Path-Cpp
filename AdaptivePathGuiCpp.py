@@ -52,10 +52,10 @@ class TaskPanelOpPage(PathOpGui.TaskPanelPage):
         formLayout.addRow(QtGui.QLabel("Step Over Percent"),form.StepOver)
 
         form.Tolerance = QtGui.QSlider(QtCore.Qt.Horizontal)
-        form.Tolerance.setMinimum(4)
-        form.Tolerance.setMaximum(12)
+        form.Tolerance.setMinimum(5)
+        form.Tolerance.setMaximum(15)
         form.Tolerance.setTickInterval(1)
-        form.Tolerance.setValue(8)
+        form.Tolerance.setValue(10)
         form.Tolerance.setTickPosition(QtGui.QSlider.TicksBelow)
         form.Tolerance.setToolTip("Influences calculation performace vs stability and accuracy")
         formLayout.addRow(QtGui.QLabel("Accuracy vs Performance"),form.Tolerance)
