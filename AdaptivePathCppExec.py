@@ -39,9 +39,6 @@ def sceneClean():
     for n in scenePathNodes:
         sceneGraph.removeChild(n)
 
-
-
-
 def GenerateGCode(op,obj,adaptiveResults, helixDiameter):
     if len(adaptiveResults)==0 or len(adaptiveResults[0]["AdaptivePaths"])==0:
       return
@@ -54,8 +51,8 @@ def GenerateGCode(op,obj,adaptiveResults, helixDiameter):
     passStartDepth=obj.StartDepth.Value
     if stepDown<0.1 : stepDown=0.1
     length = 2*math.pi * helixRadius
-    if obj.HelixAngle<1: obj.HelixAngle=1
-    helixAngleRad = math.pi * obj.HelixAngle/180.0
+    if float(obj.HelixAngle)<1: obj.HelixAngle=1
+    helixAngleRad = math.pi * float(obj.HelixAngle)/180.0
     depthPerOneCircle=length * math.tan(helixAngleRad)
     stepUp =  obj.LiftDistance.Value
     if stepUp<0:
@@ -147,13 +144,14 @@ def GenerateGCode(op,obj,adaptiveResults, helixDiameter):
 def Execute(op,obj):
     global sceneGraph
     global topZ
-    #reload(AdaptiveUtils)
+
     sceneGraph = FreeCADGui.ActiveDocument.ActiveView.getSceneGraph()
 
     Console.PrintMessage("*** Adaptive toolpath processing started...\n")
 
     #hide old toolpaths during recalculation
     obj.Path = Path.Path("(calculating...)")
+
     #store old visibility state
     job = op.getJob(obj)
     oldObjVisibility = obj.ViewObject.Visibility
@@ -176,7 +174,6 @@ def Execute(op,obj):
 
         edges=[]
         for base, subs in obj.Base:
-            #print (base,subs)
             for sub in subs:
                 shape=base.Shape.getElement(sub)
                 for edge in shape.Edges:
@@ -185,10 +182,7 @@ def Execute(op,obj):
         pathArray=AdaptiveUtils.connectEdges(edges)
 
         if obj.OperationType == "Clearing":
-            #print "pathArray:",pathArray
             if obj.Side == "Outside":
-                # for p in pathArray:
-                #     p.reverse()
                 stockBB = op.stock.Shape.BoundBox
                 v=[]
                 v.append(FreeCAD.Vector(stockBB.XMin,stockBB.YMin,0))
@@ -197,7 +191,8 @@ def Execute(op,obj):
                 v.append(FreeCAD.Vector(stockBB.XMin,stockBB.YMax,0))
                 v.append(FreeCAD.Vector(stockBB.XMin,stockBB.YMin,0))
                 pathArray.append([v])
-            if not obj.ProcessHoles: nestingLimit = 1
+                if not obj.ProcessHoles: nestingLimit = 2
+            elif not obj.ProcessHoles: nestingLimit = 1
             opType = PathAdaptiveCore.OperationType.Clearing
         else: # profiling
             if obj.Side == "Outside":
@@ -247,7 +242,9 @@ def Execute(op,obj):
             a2d.tolerance = obj.Tolerance
             a2d.opType = opType
             a2d.polyTreeNestingLimit = nestingLimit
+            #EXECUTE
             results = a2d.Execute(path2d,progressFn)
+
             #need to convert results to python object to be JSON serializable
             adaptiveResults = []
             for result in results:

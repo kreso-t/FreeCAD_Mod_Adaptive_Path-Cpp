@@ -1,9 +1,24 @@
 #include "clipper.hpp"
 #include <vector>
 #include <list>
+#include <time.h>
+
 
 #ifndef ADAPTIVE_HPP
 #define ADAPTIVE_HPP
+
+#ifndef __DBL_MAX__
+#define __DBL_MAX__ 1.7976931348623158e+308
+#endif
+
+#ifndef __LONG_MAX__
+#define __LONG_MAX__ 2147483647
+#endif
+
+#ifndef M_PI
+#define M_PI 3.141592653589793238
+#endif
+
 
 //#define DEV_MODE
 
@@ -21,7 +36,7 @@ namespace AdaptivePath {
 	typedef std::vector<DPath> DPaths;
 	typedef std::pair<int,DPath> TPath; // first parameter is MotionType, must use int due to problem with serialization to JSON in python
 
-	// struct TPath { #this does not work correctly with pybind for some reason, changed to pair
+	// struct TPath { #this does not work correctly with pybind, changed to pair
 	// 		DPath Points;
 	// 		MotionType MType;
 	// };
@@ -84,43 +99,19 @@ namespace AdaptivePath {
 
 			void CheckReportProgress(TPaths &progressPaths,bool force=false);
 
-			//debugging
-			void DrawCircle(const IntPoint &  cp, double radiusScaled, int color ) {
-				#ifdef DEV_MODE
-					DrawCircleFn(1.0*cp.X/ scaleFactor, 1.0 *cp.Y/scaleFactor, radiusScaled/scaleFactor,color);
-				#endif
-			}
-			void DrawPath(const Path & path, int color ) {
-				#ifdef DEV_MODE
-				DPath dpath;
-				if(path.size()==0) return;
-				for(const IntPoint &pt : path) {
-					std::pair<double,double> dpt = std::pair<double,double>((double)pt.X/scaleFactor, (double)pt.Y/scaleFactor);
-					dpath.push_back(dpt);
-				}
-				DrawPathFn(dpath,color);
-				#endif
-			}
-
-			void DrawPaths(const Paths & paths, int color ) {
-				#ifdef DEV_MODE
-				for(const Path &p : paths) DrawPath(p,color);
-				#endif
-			}
-
 		private: // constants for fine tuning
 			const bool preventConvetionalMode = true;
 			const double RESOLUTION_FACTOR = 8.0;
 			const int MAX_ITERATIONS = 16;
 			const double AREA_ERROR_FACTOR = 0.05; /* how precise to match the cut area to optimal, reasonable value: 0.05 = 5%*/
-			const int ANGLE_HISTORY_POINTS=3; // used for angle prediction
+			const size_t ANGLE_HISTORY_POINTS=3; // used for angle prediction
 			const int DIRECTION_SMOOTHING_BUFLEN=3; // gyro points - used for angle smoothing
 
 			const double ENGAGE_AREA_THR_FACTOR=0.2; // influences minimal engage area (factor relation to optimal)
 			const double ENGAGE_SCAN_DISTANCE_FACTOR=0.1; // influences the engage scan/stepping distance
 
-			const double CLEAN_PATH_TOLERANCE = 1;
-			const double FINISHING_CLEAN_PATH_TOLERANCE = 0.5;
+			const double CLEAN_PATH_TOLERANCE = 0.5;
+			const double FINISHING_CLEAN_PATH_TOLERANCE = 0.1;
 
 			// used for filtering out of insignificant cuts:
 			const double MIN_CUT_AREA_FACTOR = 0.02; // influences filtering of cuts that with cumulative area below threshold, reasonable value is between 0.01 and 0.1

@@ -16,30 +16,28 @@ def connectEdges(edges):
     remaining = []
     pathArray = []
     combined = []
-    #print "Input edges , remove duplicate projections to xy plane"
     for edge in edges:
         p1 = edge.valueAt(edge.FirstParameter)
         p2 = edge.valueAt(edge.LastParameter)
+        m1 =  edge.valueAt((edge.LastParameter+edge.LastParameter)/2)
         duplicate = False
         for ex in remaining:
             exp1 = ex.valueAt(ex.FirstParameter)
             exp2 = ex.valueAt(ex.LastParameter)
-            if IsEqualInXYPlane(exp1, p1) and IsEqualInXYPlane(exp2, p2):
+            exm1 = ex.valueAt((ex.FirstParameter + ex.LastParameter)/2)
+            if IsEqualInXYPlane(exp1, p1) and IsEqualInXYPlane(exp2, p2) and IsEqualInXYPlane(exm1, m1):
                 duplicate = True
-            if IsEqualInXYPlane(exp1, p2) and IsEqualInXYPlane(exp2, p1):
+            if IsEqualInXYPlane(exp1, p2) and IsEqualInXYPlane(exp2, p1) and IsEqualInXYPlane(exm1, m1):
                 duplicate = True
         if not duplicate:
             remaining.append(edge)
-    #print "remaining:", remaining
 
     newPath=True
     while len(remaining)>0:
         if newPath:
-            #print "new iteration"
             edge=remaining[0]
             p1 = edge.valueAt(edge.FirstParameter)
             p2 = edge.valueAt(edge.LastParameter)
-            #print edge, p1, p2
             if len(combined)>0: pathArray.append(combined)
             combined = []
             combined.append(discretize(edge))
@@ -51,16 +49,13 @@ def connectEdges(edges):
         for e in remaining:
             p1 = e.valueAt(e.FirstParameter)
             p2 = e.valueAt(e.LastParameter)
-            #print "chk",e, p1, p2
             if IsEqualInXYPlane(lastPoint,p1):
-                #print "last Point equal p1"
                 combined.append(discretize(e))
                 remaining.remove(e)
                 lastPoint=p2
                 anyMatch=True
                 break
             elif IsEqualInXYPlane(lastPoint,p2):
-                #print "reversed"
                 combined.append(discretize(e,True))
                 remaining.remove(e)
                 lastPoint=p1
