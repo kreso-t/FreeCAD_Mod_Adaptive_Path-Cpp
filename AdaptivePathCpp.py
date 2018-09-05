@@ -43,7 +43,7 @@ class AdaptivePathOpCpp(PathOp.ObjectOp):
         obj.addProperty("App::PropertyLength", "HelixDiameterLimit", "Adaptive", "Limit helix entry diameter, if limit larger than tool diameter or 0, tool diameter is used")
 
 
-    def opSetDefaultValues(self, obj):
+    def opSetDefaultValues(self, obj, job):
         obj.Side="Inside"
         obj.OperationType = "Clearing"
         obj.Tolerance = 0.08
@@ -69,5 +69,5 @@ class AdaptivePathOpCpp(PathOp.ObjectOp):
 def Create(name):
     '''Create(name) ... Creates and returns a Pocket operation.'''
     obj = FreeCAD.ActiveDocument.addObject("Path::FeaturePython", "Adaptive_Operation")
-    proxy = AdaptivePathOpCpp(obj)
+    proxy = AdaptivePathOpCpp(obj, None)
     return obj
